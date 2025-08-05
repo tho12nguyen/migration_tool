@@ -28,10 +28,20 @@ def extract_sql_info(text: str, valid_columns: set) -> List[str]:
 
 def replace_by_mapping(query: str, mapping: dict) -> str:
     output_lines = []
+    num_block_code_flag = 0
     for line in query.splitlines():
         original_line = line.strip()
-        # Skip comment lines
-        if original_line.startswith("//") or original_line.startswith("/*") or original_line.startswith("<!--"):
+        # Skip block comment lines
+        if num_block_code_flag > 0:
+            if (original_line.endswith("*/") or original_line.endswith("-->")):
+                num_block_code_flag -= 1
+            output_lines.append(line)
+            continue
+        if (original_line.startswith("/*") or original_line.startswith("<!--")):
+            num_block_code_flag += 1
+            output_lines.append(line)
+            continue
+        if original_line.startswith("//"):
             output_lines.append(line)
             continue
         # Skip System.out.print-like lines
