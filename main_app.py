@@ -122,7 +122,7 @@ with tab2:
         key="daily_folder_tab2"
     )
 
-    FULL_ITEM_ROOT_PATH2 = f'{ROOT_APP_PATH}/{ITEM_SUB_FOLDER_PATH2}'
+    FULL_ITEM_ROOT_PATH2 = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH2}'
     FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH2}/{DAILY_FOLDER_STR2}" if DAILY_FOLDER_STR2 else None
 
     txt_items2 = st.text_area(
