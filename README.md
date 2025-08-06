@@ -14,7 +14,7 @@ This is a Streamlit application designed to automate a code migration process.
 1.  **Clone the repository:**
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/khanh13nguyen/migration_tool.git
     cd migration_tool
     ```
 
