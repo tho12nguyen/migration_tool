@@ -14,11 +14,24 @@ from config import EXCEL_MAPPING_PATH
 import xlwings as xw
 
 @st.cache_data()
+
 def get_encode_file(file_path):
+    encodings = ['cp932', 'shift_jis', 'utf-8', 'euc_jp', 'latin-1']
+    result_encodings = None
+    for enc in encodings:
+        try:
+            with open(file_path, 'r', encoding=enc, errors='ignore') as f:
+                f.readlines()
+                result_encodings = enc
+        except Exception:
+            continue
+
     with open(file_path, "rb") as f:
         raw = f.read()
-        encoding = chardet.detect(raw)["encoding"] or "shift_jis"
-    return raw, encoding
+        if not result_encodings:
+            result_encodings = chardet.detect(raw)["encoding"]
+    return raw, result_encodings
+
 @st.cache_data()
 def load_all_sheets() -> Dict[str, pd.DataFrame]:
     return pd.read_excel(EXCEL_MAPPING_PATH, sheet_name=None)

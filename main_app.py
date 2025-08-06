@@ -1,3 +1,4 @@
+from git import List
 import streamlit as st
 from config import *
 from logic.handler import extract_column_names_from_sheet, get_encode_file, get_full_type_df, replace_lines_in_file
@@ -9,6 +10,7 @@ import shutil
 from utils import common_util
 import xlwings as xw
 from utils.file_utils import get_target_files
+from logic import merge_source
 
 st.set_page_config(page_title="Code Checker", layout="wide")
 
@@ -22,7 +24,7 @@ TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'
 
 
 # === UI INPUT ===
-tab1, tab2, tab3 = st.tabs(["Init daily items", "Process items", "Tools"])
+tab1, tab2, tab3, tab4 = st.tabs(["Init daily items", "Process items", "Tools","Merge source"])
 
 with tab1:
     ITEM_SUB_FOLDER_PATH = st.selectbox(
@@ -248,3 +250,115 @@ with tab3:
 
                 st.markdown("### Matched Table/Column Types")
                 st.dataframe(filtered_df, use_container_width=True)
+
+# Merge source
+with tab4:
+    ITEM_SUB_FOLDER_PATH4 = st.text_input(
+        "ITEM_SUB_FOLDER_PATH", 
+        value=ITEM_SUB_FOLDER_PATH2, 
+        placeholder='Example: Select/Insert/Update', 
+        key="item_root_path_tab4"
+    )
+
+    DAILY_FOLDER_STR4 = st.text_input(
+        "Daily folder", 
+        value=DAILY_FOLDER_STR2, 
+        placeholder='Example: 2025_07_30', 
+        key="daily_folder_tab4"
+    )
+
+    FULL_ITEM_ROOT_PATH4 = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH4}'
+    FULL_DAILY_FOLDER_PATH4 = f"{FULL_ITEM_ROOT_PATH4}/{DAILY_FOLDER_STR4}" if DAILY_FOLDER_STR4 else None
+
+    txt_items4 = st.text_area(
+        "Input list (tab-separated: NO, FILE_PATH, FILE_NAME, ...):", 
+        height=300, 
+        value=txt_items, 
+        key="input_list_tab4"
+    )
+
+    btn_merge = st.button("Merge sources")
+
+    if btn_merge:
+        if not SVN_ROOT_PATH:
+            st.warning("Please set SVN_ROOT_PATH in config")
+        elif not FULL_DAILY_FOLDER_PATH4:
+            st.warning("Please input daily folder name.")
+        elif not txt_items4.strip():
+            st.warning("Please input item list.")
+        else:
+            raw_lines = txt_items4.strip().splitlines()
+            item_data = []
+            errors = []
+
+            # Parse and validate lines
+            for idx, raw_line in enumerate(raw_lines, start=1):
+                # line = raw_line.strip().replace('\t', ',')
+                parts = re.split(r'[\t]+', raw_line)
+                if len(parts) < 3:
+                    errors.append(f"Line {idx} invalid: {raw_line}")
+                    continue
+                try:
+                    item_no = parts[0]
+                    file_path = parts[1]
+                    file_name = parts[2]
+                    item_data.append((item_no, file_path, file_name))
+                except ValueError:
+                    errors.append(f"Line {idx} has non-integer line numbers: {raw_line}")
+
+            if errors:
+                st.error("Some lines are invalid:")
+                st.code("\n".join(errors))
+            else:
+                if not FULL_DAILY_FOLDER_PATH4:
+                    st.warning("Folder path not resolved")
+                else:
+                    daily_files = get_target_files(FULL_DAILY_FOLDER_PATH4)
+                    if not daily_files:
+                        st.warning("?No files found in the target folder. Did you create items?")
+                    else:
+                        no_to_paths = {}
+                        for f in daily_files:
+                            no = None
+                            if re.search(r'No\.(\d+)', f):
+                                no = re.search(r'No\.(\d+)', f).group(1)
+                            if no:
+                                if no not in no_to_paths:
+                                    no_to_paths[no] = []
+                                paths: List = no_to_paths.get(no)
+                                paths.append(f)
+                                no_to_paths[no] = paths
+
+                        item_data.sort(key=lambda x: int(x[0]))
+
+                        count = 0
+                        for item_no, file_path, file_name in item_data:
+                            st.markdown(f"### Start merge source for No.{item_no}")
+                            change_path_files = no_to_paths.get(item_no, None)
+                            if not change_path_files:
+                                st.warning(f"File for No.{item_no} not found. Skipping.")
+                                continue
+                            
+                            after_file_name = file_name.split('.')[0] + '_after.' + file_name.split('.')[1]
+                            for change_path_file in change_path_files:
+                                try:
+                                    if not change_path_file.endswith(after_file_name):
+                                        st.error(f"IGNORE MERGE SOURCE FOR: {change_path_file}")
+                                    else:
+                                        original_path_file = str(Path(change_path_file).parent / file_name)
+                                        dest_file_path = (f"{SVN_ROOT_PATH}{file_path + file_name}").replace('/','\\')
+                                        st.write(f"Original file: {original_path_file}")
+                                        st.write(f"Change file: {change_path_file}")
+                                        st.write(f"Destination file: {dest_file_path}")
+                                        _, encoding = get_encode_file(original_path_file)
+                                        if not encoding:
+                                            st.error(f"{encoding}: Encoding could not be detected for {original_path_file}")
+                                            continue
+                                        change_code = merge_source.merge_source_file(original_path_file, change_path_file, dest_file_path, encoding)
+                                        st.code(f"Change code:{encoding}\n {change_code}")
+                                        count += 1
+                                        st.success(f"Merge source for No.{item_no} completed successfully")
+                                except Exception as e:
+                                    st.error(f"Error processing No.{item_no}: {e}")
+                        
+                        st.success(f"Total merged files: {count}")

@@ -22,8 +22,9 @@ def extract_sql_info(text: str, valid_columns: set) -> List[str]:
     text = remove_system_out_print(text)
     for line in text.splitlines():
         for word in extract_japanese_alphanum(line):
-            if word in valid_columns and word not in found:
-                found.append(word)
+            word_upper = word.upper()
+            if word_upper in valid_columns and word_upper not in found:
+                found.append(word_upper)
     return found
 
 def replace_by_mapping(query: str, mapping: dict) -> str:
@@ -32,6 +33,16 @@ def replace_by_mapping(query: str, mapping: dict) -> str:
     for line in query.splitlines():
         original_line = line.strip()
         # Skip block comment lines
+        if "/*" in original_line or "<!--" in original_line:
+            num_block_code_flag += 1
+
+        if "*/" in original_line or "-->" in original_line:
+            num_block_code_flag -= 1
+
+        if num_block_code_flag > 0:
+            output_lines.append(line)
+            continue  # skip processing lines inside block comments
+
         if num_block_code_flag > 0:
             if (original_line.endswith("*/") or original_line.endswith("-->")):
                 num_block_code_flag -= 1
