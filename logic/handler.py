@@ -88,13 +88,16 @@ def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schem
 
     # Export used keys to Excel
     excel_full_path = str(Path(souce_file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
-    filter_and_copy_evidence_data(
-        app,
-        input_excel=FULL_EVIDENCE_INPUT_PATH,
-        output_excel=excel_full_path,
-        sheet_names=EVIDENCE_EXCEL_SHEETS,
-        filter_values=filter_kes
-    )
+    if app:
+        filter_and_copy_evidence_data(
+            app,
+            input_excel=FULL_EVIDENCE_INPUT_PATH,
+            output_excel=excel_full_path,
+            sheet_names=EVIDENCE_EXCEL_SHEETS,
+            filter_values=filter_kes
+        )
+    else:
+        st.warning("No Excel app instance provided, skipping evidence data export.")
 
     mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict)
     return replace_by_mapping(block, mapping)

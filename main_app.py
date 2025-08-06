@@ -1,8 +1,9 @@
 from git import List
 import streamlit as st
 from config import *
-from logic.handler import extract_column_names_from_sheet, get_encode_file, get_full_type_df, replace_lines_in_file
-from logic.text_processing import extract_sql_info
+from logic.handler import extract_column_names_from_sheet, get_encode_file, get_full_type_df, replace_lines_in_file,load_all_sheets
+from logic.mapping import build_full_mapping, build_mappings
+from logic.text_processing import extract_sql_info, replace_by_mapping
 import pandas as pd
 import re
 import os
@@ -24,7 +25,7 @@ TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'
 
 
 # === UI INPUT ===
-tab1, tab2, tab3, tab4 = st.tabs(["Init daily items", "Process items", "Tools","Merge source"])
+tab1, tab2, tab3, tab4 = st.tabs(["Init daily items", "Process items", "Check Tool","Merge source"])
 
 with tab1:
     ITEM_SUB_FOLDER_PATH = st.selectbox(
@@ -250,6 +251,12 @@ with tab3:
 
                 st.markdown("### Matched Table/Column Types")
                 st.dataframe(filtered_df, use_container_width=True)
+                sheets = load_all_sheets()
+                schema_dict, table_dict, column_dict = build_mappings(sheets)
+                mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict)
+                output_code = replace_by_mapping(code_input, mapping)
+                st.markdown("### Processed Code with Replacements")
+                st.code(output_code)
 
 # Merge source
 with tab4:
