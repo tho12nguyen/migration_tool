@@ -23,6 +23,7 @@ def get_encode_file(file_path):
             with open(file_path, 'r', encoding=enc, errors='ignore') as f:
                 f.readlines()
                 result_encodings = enc
+                break
         except Exception:
             continue
 
