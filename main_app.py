@@ -10,7 +10,7 @@ import os
 import shutil
 from utils import common_util
 import xlwings as xw
-from utils.file_utils import get_target_files
+from utils import file_utils
 from logic import merge_source
 
 st.set_page_config(page_title="Code Checker", layout="wide")
@@ -25,7 +25,7 @@ TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'
 
 
 # === UI INPUT ===
-tab1, tab2, tab3, tab4 = st.tabs(["Init daily items", "Process items", "Check Tool","Merge source"])
+tab1, tab2, tab3, tab4,tab5 = st.tabs(["Init daily items", "Process items", "Check Tool","Merge source",  "Delete  unused files"])
 
 with tab1:
     ITEM_SUB_FOLDER_PATH = st.selectbox(
@@ -169,7 +169,7 @@ with tab2:
                 if not FULL_DAILY_FOLDER_PATH:
                     st.warning("Folder path not resolved")
                 else:
-                    daily_files = get_target_files(FULL_DAILY_FOLDER_PATH)
+                    daily_files = file_utils.get_target_files(FULL_DAILY_FOLDER_PATH)
                     if not daily_files:
                         st.warning("?No files found in the target folder. Did you create items?")
                     else:
@@ -320,7 +320,7 @@ with tab4:
                 if not FULL_DAILY_FOLDER_PATH4:
                     st.warning("Folder path not resolved")
                 else:
-                    daily_files = get_target_files(FULL_DAILY_FOLDER_PATH4)
+                    daily_files = file_utils.get_target_files(FULL_DAILY_FOLDER_PATH4)
                     if not daily_files:
                         st.warning("?No files found in the target folder. Did you create items?")
                     else:
@@ -369,3 +369,53 @@ with tab4:
                                     st.error(f"Error processing No.{item_no}: {e}")
                         
                         st.success(f"Total merged files: {count}")
+
+# === DELETE UNUSED FILES ===
+with tab5:
+    ITEM_SUB_FOLDER_PATH5 = st.text_input(
+        "ITEM_SUB_FOLDER_PATH", 
+        value=ITEM_SUB_FOLDER_PATH2, 
+        placeholder='Example: Select/Insert/Update', 
+        key="item_root_path_tab5"
+    )
+
+    DAILY_FOLDER_STR5 = st.text_input(
+        "Daily folder", 
+        value=DAILY_FOLDER_STR2, 
+        placeholder='Example: 2025_07_30', 
+        key="daily_folder_tab5"
+    )
+
+    FULL_ITEM_ROOT_PATH5 = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH5}'
+    FULL_DAILY_FOLDER_PATH5 = f"{FULL_ITEM_ROOT_PATH5}/{DAILY_FOLDER_STR5}" if DAILY_FOLDER_STR5 else None
+
+    txt_file_suffixes = st.text_input(
+        "File suffixes:", 
+        value=".bak, _v1.xlsx", 
+        placeholder='Example: .bak, _v1.xlsx, ...',
+        key="file_suffixes_tab5"
+    )
+
+    del_unused_btn = st.button("Delete unused files", key="del_unused_btn")
+    unused_files = []
+    if del_unused_btn:
+        if not FULL_DAILY_FOLDER_PATH5:
+            st.warning("Please input daily folder name.")
+        elif not txt_file_suffixes.strip():
+            st.warning("Please input file suffix list.")
+        else:
+            file_suffixes = set(suffix.strip() for suffix in txt_file_suffixes.split(',') if suffix.strip())
+            if file_suffixes:
+                st.write(f"File suffixes: {file_suffixes}")
+                unused_files = file_utils.get_files_by_suffixes(FULL_DAILY_FOLDER_PATH5, file_suffixes)
+                if not unused_files:
+                    st.warning("No unused files found with the specified suffixes.")
+                else:
+                    st.write(unused_files)
+                    st.write(f"Total files found: {len(unused_files)}")
+                    errors = file_utils.del_files_by_paths(unused_files)
+                    if errors:
+                        st.error("Errors occurred while deleting files:")
+                        st.code("\n".join(errors))
+                    else:
+                        st.success("All unused files deleted successfully!")
