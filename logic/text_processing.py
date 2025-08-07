@@ -33,25 +33,15 @@ def replace_by_mapping(query: str, mapping: dict) -> str:
     for line in query.splitlines():
         original_line = line.strip()
         # Skip block comment lines
-        if "/*" in original_line or "<!--" in original_line:
+        if (original_line.startswith("/*") or original_line.startswith("<!--")):
             num_block_code_flag += 1
-
-        if "*/" in original_line or "-->" in original_line:
-            num_block_code_flag -= 1
-
-        if num_block_code_flag > 0:
-            output_lines.append(line)
-            continue  # skip processing lines inside block comments
 
         if num_block_code_flag > 0:
             if (original_line.endswith("*/") or original_line.endswith("-->")):
                 num_block_code_flag -= 1
             output_lines.append(line)
             continue
-        if (original_line.startswith("/*") or original_line.startswith("<!--")):
-            num_block_code_flag += 1
-            output_lines.append(line)
-            continue
+
         if original_line.startswith("//"):
             output_lines.append(line)
             continue
