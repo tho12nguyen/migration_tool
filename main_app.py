@@ -12,6 +12,7 @@ from utils import common_util
 import xlwings as xw
 from utils import file_utils
 from logic import merge_source
+from tools import validate_rule_tool
 
 st.set_page_config(page_title="Code Checker", layout="wide")
 
@@ -25,7 +26,16 @@ TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'
 
 
 # === UI INPUT ===
-tab1, tab2, tab3, tab4,tab5 = st.tabs(["Init daily items", "Process items", "Check Tool","Merge source",  "Delete  unused files"])
+tab_titles = [
+    "Initialize Daily Items",
+    "Auto Replace Tool",
+    "Delete Unused Files",
+    "Merge Source Files",
+    "Check rule 2 XO",
+    "Manual Replace Tool",
+]
+
+tab1, tab2, tab3, tab4, tab5, tab6= st.tabs(tab_titles)
 
 with tab1:
     ITEM_SUB_FOLDER_PATH = st.selectbox(
@@ -206,13 +216,12 @@ with tab2:
                                 del app
 
 
-# === TOOLS ===
-with tab3:
+with tab6:
     # Input field for pasted code
     code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
 
     # Button to trigger analysis
-    if st.button("Export Data Types"):
+    if st.button("Process Code"):
         if not code_input.strip():
             st.warning("Please input code first.")
         else:
@@ -246,8 +255,8 @@ with tab3:
                 # filtered_df['column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
 
                 # Step 6: Sort and display
-                filtered_df = filtered_df.sort_values(by=['table_order', 'column_order'])
-                filtered_df.drop(columns=['table_order', 'column_order'], inplace=True)
+                filtered_df = filtered_df.sort_values(by=['column_order', 'table_order'])
+                filtered_df.drop(columns=['column_order', 'table_order'], inplace=True)
 
                 st.markdown("### Matched Table/Column Types")
                 st.dataframe(filtered_df, use_container_width=True)
@@ -371,7 +380,7 @@ with tab4:
                         st.success(f"Total merged files: {count}")
 
 # === DELETE UNUSED FILES ===
-with tab5:
+with tab3:
     ITEM_SUB_FOLDER_PATH5 = st.text_input(
         "ITEM_SUB_FOLDER_PATH", 
         value=ITEM_SUB_FOLDER_PATH2, 
@@ -419,3 +428,43 @@ with tab5:
                         st.code("\n".join(errors))
                     else:
                         st.success("All unused files deleted successfully!")
+
+with tab5:
+
+    full_excel_data_file_path = st.text_input(
+        "Excel data file path", 
+        placeholder='Example: C:/path/to/data.xlsx',
+        key="excel_data_file_path_tab6"
+    )
+
+
+    folder = st.text_input("Folder path",
+        placeholder='Example: C:/path/to/folder',
+        key="folder_path_tab6"
+    )
+    btn_check_rule2 = st.button("Check rule 2 XO", key="btn_check_rule2_tab6")
+    
+    if btn_check_rule2:
+        if not full_excel_data_file_path.strip():
+            st.warning("Vui lòng nhập đường dẫn file Excel dữ liệu.")
+        elif not folder.strip():
+            st.warning("Vui lòng nhập đường dẫn thư mục cần duyệt.")
+        else:
+            excel_file = full_excel_data_file_path.strip()
+            folder = folder.strip()
+            excel_data = validate_rule_tool.read_excel_data(excel_file)
+            cast_results, cast_logs = validate_rule_tool.scan_folder_for_cast(folder, excel_data)
+            if cast_results:
+                    for file_path, info in cast_results.items():
+                        st.write(f'File: {file_path} | status (Excel): {info['status']}\n' )
+                        for line in info["lines"]:
+                            st.write(f"    {line}\n")
+                        st.write("\n")
+            else:
+                st.write("Không phát hiện dòng nào chứa CAST với trạng thái x.\n")
+            
+            if cast_logs:
+                for log in cast_logs:
+                    st.write(log)
+            else:
+                st.write("Không có log nào được ghi lại trong quá trình kiểm tra.")

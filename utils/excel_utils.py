@@ -16,7 +16,8 @@ def filter_and_copy_evidence_data(app: xw.App, input_excel, output_excel, sheet_
         wb_in = app.books.open(str(input_path))
         if output_path.exists() and output_path.is_file():
             wb_out = app.books.open(str(output_path))
-            temp_sheet = wb_out.sheets.add(name="Sheet1")
+            if "Sheet1" not in  wb_out.sheets:
+                wb_out.sheets.add(name="Sheet1")
             for sht in wb_out.sheets:
                 if sht.name != "Sheet1":
                     sht.delete()

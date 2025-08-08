@@ -57,7 +57,8 @@ This is a Streamlit application designed to automate a code migration process.
     ```bash
     python -m streamlit run main_app.py --server.address localhost
     ```
-        ```bash
+    
+    ```bash
      .\.venv\Scripts\activate
     python -m streamlit run main_app.py --server.address localhost
     ```

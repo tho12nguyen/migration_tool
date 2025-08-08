@@ -83,8 +83,8 @@ def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schem
 
     filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
     filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
-    filtered_df = filtered_df.sort_values(['table_order', 'column_order'])
-    filtered_df = filtered_df.drop(columns=['table_order', 'column_order'])
+    filtered_df = filtered_df.sort_values(['column_order', 'table_order'])
+    filtered_df = filtered_df.drop(columns=['column_order', 'table_order'])
     st.dataframe(filtered_df)
 
     # Export used keys to Excel
