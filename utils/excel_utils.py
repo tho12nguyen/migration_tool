@@ -3,11 +3,66 @@ import xlwings as xw
 from pathlib import Path
 from config import SHEET_CONFIG_MAP
 
+SHEET_NAME_DEFAULT = 'Sheet1'
+
 def col_letter_to_index(letter):
     return ord(letter.upper()) - ord('A')
 
 def load_all_sheets(excel_path):
     return pd.read_excel(excel_path, sheet_name=None)
+
+def filter_excel(app: xw.App, excel_path, filter_values):
+    input_path = Path(excel_path).resolve()
+    wb = app.books.open(str(input_path))
+    try:
+        wb.sheets.add(name=SHEET_NAME_DEFAULT)
+        # sheets = wb.sheets if sheet_names is None else [wb.sheets[name] for name in sheet_names]
+        for sheet in wb.sheets:
+            sheet_name = sheet.name.lower()
+            if sheet_name not in SHEET_CONFIG_MAP and sheet_name != SHEET_NAME_DEFAULT.lower():
+                sheet.delete()
+                continue
+            if sheet_name == SHEET_NAME_DEFAULT.lower():
+                # Skip default sheet, it will be used for new data
+                continue
+
+            cfg = SHEET_CONFIG_MAP[sheet_name]
+
+            # Read full range into pandas
+            rng = sheet.range((1, 1), (cfg["num_rows"], cfg["num_cols"])).value
+            df = pd.DataFrame(rng)
+
+            # Separate headers and data
+            headers = df.iloc[:cfg["number_header_rows"]]
+            data = df.iloc[cfg["number_header_rows"]:]
+
+            # Filter rows:
+            filter_indices = [ord(c.upper()) - ord('A') for c in cfg["filter_columns"]]
+            mask = pd.Series(True, index=data.index)  # Start with all True
+            for idx in filter_indices:
+                col_series = data[idx].astype(str).str.strip()
+                mask &= col_series.isin(filter_values)
+
+            filtered_data = data[mask]
+
+            if filtered_data.empty:
+                # Delete the sheet if no rows match
+                sheet.delete()
+            else:
+                out_df = pd.concat([headers, filtered_data], ignore_index=True)
+
+                # Clear the relevant range BEFORE writing filtered data
+                sheet.range((1, 1), (cfg["num_rows"], cfg["num_cols"])).clear_contents()
+
+                # Write filtered data back to sheet starting at A1
+                sheet.range("A1").value = out_df.values
+        
+        if len(wb.sheets) > 1:
+            wb.sheets[SHEET_NAME_DEFAULT].delete()  # Remove the default sheet if it exists
+        wb.save()
+    finally:
+        wb.close()
+
 
 def filter_and_copy_evidence_data(app: xw.App, input_excel, output_excel, sheet_names=None, filter_values=set()):
     input_path = Path(input_excel).resolve()

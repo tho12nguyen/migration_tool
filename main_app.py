@@ -98,12 +98,14 @@ with tab1:
                         des_path_after = f'{des_folder_name}/{file_name}_after.{file_type}'
                         des_excel_path = f'{des_folder_name}/{EXCEL_FILE_NAME}'
                         des_html_path = f'{des_folder_name}/{HTML_FILE_NAME}'
+                        des_evidence_path = f'{des_folder_name}/{OUTPUT_EVIDENCE_EXCEL_NAME}'
 
                         # Copy template files
                         shutil.copy(src_path, des_path)
                         shutil.copy(src_path, des_path_after)
                         shutil.copy(TEMPLATE_EXCEL_PATH, des_excel_path)
                         shutil.copy(TEMPLATE_HTML_PATH, des_html_path)
+                        shutil.copy(FULL_EVIDENCE_INPUT_PATH, des_evidence_path)
 
                         created_items.append({
                             "No": item_id,

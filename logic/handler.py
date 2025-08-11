@@ -2,10 +2,10 @@
 from pathlib import Path
 import streamlit as st
 from typing import List
-from config import EVIDENCE_EXCEL_SHEETS, FULL_EVIDENCE_INPUT_PATH, OUTPUT_EVIDENCE_EXCEL_NAME
+from config import OUTPUT_EVIDENCE_EXCEL_NAME
 from logic.mapping import build_full_mapping, build_mappings
 from logic.text_processing import extract_sql_info, replace_by_mapping
-from utils.excel_utils import filter_and_copy_evidence_data
+from utils.excel_utils import filter_excel
 from typing import Dict
 import streamlit as st
 import chardet
@@ -90,11 +90,11 @@ def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schem
     # Export used keys to Excel
     excel_full_path = str(Path(souce_file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
     if app:
-        filter_and_copy_evidence_data(
+        filter_excel(app, excel_full_path, filter_kes)
+        st.success(f"Evidence data exported to {OUTPUT_EVIDENCE_EXCEL_NAME} at {excel_full_path}")
+        filter_excel(
             app,
-            input_excel=FULL_EVIDENCE_INPUT_PATH,
-            output_excel=excel_full_path,
-            sheet_names=EVIDENCE_EXCEL_SHEETS,
+            excel_path=excel_full_path,
             filter_values=filter_kes
         )
     else:
