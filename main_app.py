@@ -1,4 +1,4 @@
-from git import List
+from typing import List
 import streamlit as st
 from config import *
 from logic.handler import extract_column_names_from_sheet, get_encode_file, get_full_type_df, replace_lines_in_file,load_all_sheets
@@ -402,7 +402,7 @@ with tab3:
 
     txt_file_suffixes = st.text_input(
         "File suffixes:", 
-        value=".bak, _v1.xlsx", 
+        value=".bak, evidence.xlsx", 
         placeholder='Example: .bak, _v1.xlsx, ...',
         key="file_suffixes_tab5"
     )
