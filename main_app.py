@@ -192,7 +192,7 @@ with tab2:
 
                         item_data.sort(key=lambda x: int(x[0]))
                         try:
-                            app = xw.App(visible=True)
+                            app = xw.App(visible=False)
                             for item_no, start_line, end_line in item_data:
                                 st.markdown(f"### Start process for No.{item_no}")
 
