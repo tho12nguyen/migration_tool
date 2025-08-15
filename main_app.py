@@ -16,15 +16,6 @@ from tools import validate_rule_tool
 
 st.set_page_config(page_title="Code Checker", layout="wide")
 
-
-# CONFIGS
-HTML_FILE_NAME, EXCEL_FILE_NAME = common_util.get_first_htm_and_xlsx(TEMPLATE_FOLDER_PATH)
-TEMPLATE_HTML_PATH = f'{TEMPLATE_FOLDER_PATH}/{HTML_FILE_NAME}'
-TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'
-
-# COMMON FUNCTIONS
-
-
 # === UI INPUT ===
 tab_titles = [
     "Initialize Daily Items",
@@ -216,58 +207,6 @@ with tab2:
                             if 'app' in locals():
                                 app.quit()
                                 del app
-
-
-with tab6:
-    # Input field for pasted code
-    code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
-
-    # Button to trigger analysis
-    if st.button("Process Code"):
-        if not code_input.strip():
-            st.warning("Please input code first.")
-        else:
-            # Step 1: Extract valid column names from Excel
-            valid_columns = extract_column_names_from_sheet()
-
-            # Step 2: Extract used keys (columns/tables) from input code
-            used_keys = extract_sql_info(code_input, valid_columns)
-
-            if not used_keys:
-                st.warning("No matching columns or tables found in your code.")
-            else:
-                st.success(f"Found {len(used_keys)} used keys.")
-                st.code(', '.join(used_keys), language='text')
-                # st.code(f'columns = {used_keys}', language='python')
-
-                # Step 3: Load the full type mapping sheet
-                full_type_df = get_full_type_df()
-
-                # Step 4: Filter by used keys
-                filter_keys = set(used_keys)
-                filtered_df = full_type_df[
-                    full_type_df['table_name'].isin(filter_keys) & 
-                    full_type_df['column_name'].isin(filter_keys)
-                ].copy()
-
-                # Step 5: Add sorting based on usage order
-                filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
-                filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
-                # filtered_df['table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
-                # filtered_df['column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
-
-                # Step 6: Sort and display
-                filtered_df = filtered_df.sort_values(by=['column_order', 'table_order'])
-                filtered_df.drop(columns=['column_order', 'table_order'], inplace=True)
-
-                st.markdown("### Matched Table/Column Types")
-                st.dataframe(filtered_df, use_container_width=True)
-                sheets = load_all_sheets()
-                schema_dict, table_dict, column_dict = build_mappings(sheets)
-                mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict)
-                output_code = replace_by_mapping(code_input, mapping)
-                st.markdown("### Processed Code with Replacements")
-                st.code(output_code)
 
 # Merge source
 with tab4:
@@ -465,8 +404,62 @@ with tab5:
             else:
                 st.write("Không phát hiện dòng nào chứa CAST với trạng thái x.\n")
             
-            if cast_logs:
-                for log in cast_logs:
-                    st.write(log)
+            # if cast_logs:
+            #     for log in cast_logs:
+            #         st.write(log)
+            # else:
+            #     st.write("Không có log nào được ghi lại trong quá trình kiểm tra.")
+
+
+with tab6:
+    # Input field for pasted code
+    code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
+
+    # Button to trigger analysis
+    if st.button("Process Code"):
+        if not code_input.strip():
+            st.warning("Please input code first.")
+        else:
+            # Step 1: Extract valid column names from Excel
+            valid_columns = extract_column_names_from_sheet()
+
+            # Step 2: Extract used keys (columns/tables) from input code
+            (used_keys, unused_keys) = extract_sql_info(code_input, valid_columns)
+            if unused_keys:
+                st.warning(unused_keys)
+
+            if not used_keys:
+                st.warning("No matching columns or tables found in your code.")
             else:
-                st.write("Không có log nào được ghi lại trong quá trình kiểm tra.")
+                st.success(f"Found {len(used_keys)} used keys.")
+                st.code(', '.join(used_keys), language='text')
+                # st.code(f'columns = {used_keys}', language='python')
+
+                # Step 3: Load the full type mapping sheet
+                full_type_df = get_full_type_df()
+
+                # Step 4: Filter by used keys
+                filter_keys = set(used_keys)
+                filtered_df = full_type_df[
+                    full_type_df['table_name'].isin(filter_keys) & 
+                    full_type_df['column_name'].isin(filter_keys)
+                ].copy()
+
+                # Step 5: Add sorting based on usage order
+                filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
+                filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
+                # filtered_df['table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
+                # filtered_df['column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
+
+                # Step 6: Sort and display
+                filtered_df = filtered_df.sort_values(by=['column_order', 'table_order'])
+                filtered_df.drop(columns=['column_order', 'table_order'], inplace=True)
+
+                st.markdown("### Matched Table/Column Types")
+                st.dataframe(filtered_df, use_container_width=True)
+                sheets = load_all_sheets()
+                schema_dict, table_dict, column_dict = build_mappings(sheets)
+                mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict)
+                output_code = replace_by_mapping(code_input, mapping)
+                st.markdown("### Processed Code with Replacements")
+                st.code(output_code)

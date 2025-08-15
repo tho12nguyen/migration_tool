@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Tuple
 
 def extract_japanese_alphanum(text: str) -> List[str]:
     return re.findall(r'[\u3040-\u30ff\u4e00-\u9fff\w:]+', text, re.UNICODE)
@@ -16,16 +16,21 @@ def remove_system_out_print(text: str) -> str:
     return re.sub(pattern, '', text, flags=re.DOTALL)
 
 
-def extract_sql_info(text: str, valid_columns: set) -> List[str]:
+def extract_sql_info(text: str, valid_columns: set) -> Tuple[List[str], List[str]]:
     found = []
+    notFound = []
     text = remove_comments(text)
     text = remove_system_out_print(text)
     for line in text.splitlines():
         for word in extract_japanese_alphanum(line):
             word_upper = word.upper()
-            if word_upper in valid_columns and word_upper not in found:
-                found.append(word_upper)
-    return found
+            if word_upper in valid_columns:
+                if  word_upper not in found:
+                    found.append(word_upper)
+            else:
+                if len(word_upper.encode("utf-8")) != len(word_upper.encode("shift_jis")) and word_upper not in notFound:
+                    notFound.append(word_upper)
+    return (found, notFound)
 
 def replace_by_mapping(query: str, mapping: dict) -> str:
     output_lines = []

@@ -46,7 +46,6 @@ This is a Streamlit application designed to automate a code migration process.
 
     ```
     FULL_EVIDENCE_INPUT_PATH="/path/to/your/evidence.xlsx"
-    EXCEL_MAPPING_PATH="/path/to/your/full_data.xlsx"
     ROOT_APP_PATH="/path/to/your/root/app"
     ```
 

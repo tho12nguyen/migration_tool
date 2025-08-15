@@ -11,11 +11,19 @@ def col_letter_to_index(letter):
 def load_all_sheets(excel_path):
     return pd.read_excel(excel_path, sheet_name=None)
 
+def exist_default_sheet_name(sheets) -> bool:
+    for sheet in sheets:
+        sheet_name = sheet.name.lower()
+        if SHEET_NAME_DEFAULT.lower() == sheet_name:
+            return True
+    return False
+
 def filter_excel(app: xw.App, excel_path, filter_values):
     input_path = Path(excel_path).resolve()
     wb = app.books.open(str(input_path))
     try:
-        wb.sheets.add(name=SHEET_NAME_DEFAULT)
+        if not exist_default_sheet_name(wb.sheets):
+            wb.sheets.add(name=SHEET_NAME_DEFAULT)
         # sheets = wb.sheets if sheet_names is None else [wb.sheets[name] for name in sheet_names]
         for sheet in wb.sheets:
             sheet_name = sheet.name.lower()

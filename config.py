@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+from utils import common_util
+
 load_dotenv()
 
 SUB_ITEM_FOLDERS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
@@ -19,9 +21,14 @@ ENCODE_LIST = ['cp932', 'shift_jis']
 
 # CONFIG PATH
 OUTPUT_EVIDENCE_EXCEL_NAME = "evidence.xlsx"
-FULL_EVIDENCE_INPUT_PATH = os.getenv("FULL_EVIDENCE_INPUT_PATH")
-EXCEL_MAPPING_PATH = os.getenv("EXCEL_MAPPING_PATH")
+RESOURCE_ROOT_PATH = os.getenv("RESOURCE_ROOT_PATH")
+FULL_EVIDENCE_INPUT_PATH = RESOURCE_ROOT_PATH + "/resources/evidence.xlsx" 
 ROOT_APP_PATH = os.getenv("ROOT_APP_PATH")
 ROOT_OUTPUT_PATH = os.getenv("ROOT_OUTPUT_PATH")
 SVN_ROOT_PATH = os.getenv("SVN_ROOT_PATH").replace('/','\\')
-TEMPLATE_FOLDER_PATH = f'{ROOT_OUTPUT_PATH}/template'
+
+
+TEMPLATE_FOLDER_PATH = f'{RESOURCE_ROOT_PATH}/resources/template'
+HTML_FILE_NAME, EXCEL_FILE_NAME = common_util.get_first_htm_and_xlsx(TEMPLATE_FOLDER_PATH)
+TEMPLATE_HTML_PATH = f'{TEMPLATE_FOLDER_PATH}/{HTML_FILE_NAME}'
+TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'

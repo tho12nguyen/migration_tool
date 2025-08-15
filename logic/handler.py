@@ -10,7 +10,7 @@ from typing import Dict
 import streamlit as st
 import chardet
 import pandas as pd
-from config import EXCEL_MAPPING_PATH
+from config import FULL_EVIDENCE_INPUT_PATH
 import xlwings as xw
 
 @st.cache_data()
@@ -35,12 +35,12 @@ def get_encode_file(file_path):
 
 @st.cache_data()
 def load_all_sheets() -> Dict[str, pd.DataFrame]:
-    return pd.read_excel(EXCEL_MAPPING_PATH, sheet_name=None)
+    return pd.read_excel(FULL_EVIDENCE_INPUT_PATH, sheet_name=None)
 
 @st.cache_data()
 def extract_column_names_from_sheet() -> set:
     df = load_all_sheets().get('column')
-    return {row[i] for row in df.to_numpy() for i in range(1, 5) if row[i]}
+    return {row[i] for row in df.to_numpy() for i in range(2, 6) if row[i]}
 
 @st.cache_data()
 def get_full_type_df() -> pd.DataFrame:
@@ -72,9 +72,10 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
 
 def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schema_dict, table_dict, column_dict, souce_file_path: str) -> str:
     block = ''.join(lines)
-    used_keys = extract_sql_info(block, valid_columns)
+    (used_keys, unused_keys) = extract_sql_info(block, valid_columns)
+    if unused_keys:
+        st.warning(unused_keys)
     st.code(','.join(used_keys))
-    # st.code(f'columns = {used_keys}')
 
     # Load Excel sheets
     filter_kes = set(used_keys)
