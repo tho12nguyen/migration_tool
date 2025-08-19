@@ -14,6 +14,7 @@ from utils import file_utils
 from logic import merge_source
 from tools import validate_rule_tool
 
+
 st.set_page_config(page_title="Code Checker", layout="wide")
 
 # === UI INPUT ===
@@ -40,7 +41,8 @@ with tab1:
     DAILY_FOLDER_STR = st.text_input(
         "Daily folder", 
         placeholder='Example: 2025_07_30', 
-        key="daily_folder_tab1"
+        key="daily_folder_tab1",
+        value=common_util.get_current_date_str()
     )
 
     FULL_ITEM_ROOT_PATH = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH}'

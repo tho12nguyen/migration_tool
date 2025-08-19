@@ -1,4 +1,9 @@
 from pathlib import Path
+from datetime import datetime
+
+
+def get_current_date_str() -> str:
+    return datetime.now().strftime("%Y_%m_%d")
 
 def get_first_htm_and_xlsx(folder_path: str):
     folder = Path(folder_path)

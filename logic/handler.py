@@ -64,21 +64,27 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
     after = lines[end_line:]
 
     replaced_block = process_and_replace_lines(app, target, col_set, schema_dict, table_dict, column_dict, file_path)
-    st.code(replaced_block)
-    result_lines = before + [replaced_block + '\n'] + after
-    
-    with open(file_path, 'w', encoding=encoding) as f:
-        f.writelines(result_lines)
+    if replaced_block:
+        st.code(replaced_block)
+        result_lines = before + [replaced_block + '\n'] + after
+        
+        with open(file_path, 'w', encoding=encoding) as f:
+            f.writelines(result_lines)
 
 def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schema_dict, table_dict, column_dict, souce_file_path: str) -> str:
     block = ''.join(lines)
     (used_keys, unused_keys) = extract_sql_info(block, valid_columns)
     if unused_keys:
         st.warning(unused_keys)
+    st.write(f"Full keys: {len(used_keys)} keys")
     st.code(','.join(used_keys))
 
     # Load Excel sheets
     filter_kes = set(used_keys)
+    table_list = { table_name for  table_name in filter_kes if  table_name in table_dict }
+    if table_list:
+        st.write(f"Tables: {len(table_list)} tables")
+        st.code(','.join(table_list))
     full_type_df = get_full_type_df()
     filtered_df  = full_type_df[full_type_df['table_name'].isin(filter_kes) & full_type_df['column_name'].isin(filter_kes)]
 
@@ -92,7 +98,6 @@ def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schem
     excel_full_path = str(Path(souce_file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
     if app:
         filter_excel(app, excel_full_path, filter_kes)
-        st.success(f"Evidence data exported to {OUTPUT_EVIDENCE_EXCEL_NAME} at {excel_full_path}")
         filter_excel(
             app,
             excel_path=excel_full_path,
