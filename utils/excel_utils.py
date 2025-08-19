@@ -48,7 +48,7 @@ def filter_excel(app: xw.App, excel_path, filter_values):
             filter_indices = [ord(c.upper()) - ord('A') for c in cfg["filter_columns"]]
             mask = pd.Series(True, index=data.index)  # Start with all True
             for idx in filter_indices:
-                col_series = data[idx].astype(str).str.strip()
+                col_series = data[idx].astype(str).str.strip().str.upper()
                 mask &= col_series.isin(filter_values)
 
             filtered_data = data[mask]
