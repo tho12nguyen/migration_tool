@@ -1,3 +1,9 @@
+from typing import Set
+from pandas import DataFrame
+
+def get_full_schema_table_and_column_names_from_sheets(sheets) -> Set[str]:
+    df: DataFrame  = sheets.get('column')
+    return {str(row[i]).upper() for row in df.to_numpy() for i in range(2, 6) if row[i]}
 
 def build_mappings(sheets) -> tuple:
     schema_dict, table_dict, column_dict = {}, {}, {}

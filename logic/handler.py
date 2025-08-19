@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 from typing import List
 from config import OUTPUT_EVIDENCE_EXCEL_NAME
-from logic.mapping import build_full_mapping, build_mappings
+from logic.mapping import build_full_mapping, build_mappings, get_full_schema_table_and_column_names_from_sheets
 from logic.text_processing import extract_sql_info, replace_by_mapping
 from utils.excel_utils import filter_excel
 from typing import Dict
@@ -39,8 +39,9 @@ def load_all_sheets() -> Dict[str, pd.DataFrame]:
 
 @st.cache_data()
 def extract_column_names_from_sheet() -> set:
-    df = load_all_sheets().get('column')
-    return {row[i] for row in df.to_numpy() for i in range(2, 6) if row[i]}
+    sheets = load_all_sheets()
+    return get_full_schema_table_and_column_names_from_sheets(sheets)
+
 
 @st.cache_data()
 def get_full_type_df() -> pd.DataFrame:
@@ -49,6 +50,8 @@ def get_full_type_df() -> pd.DataFrame:
         if name.startswith('type'):
             # print(f"Sheet: {name}: size: {len(df)} example:#n{df.head(2)}")
             full_type_df = pd.concat([full_type_df, df], ignore_index=True)
+    full_type_df['table_name'] = full_type_df['table_name'].str.upper()
+    full_type_df['column_name'] = full_type_df['column_name'].str.upper()
     return full_type_df
 
 def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line: int, encoding: str):
