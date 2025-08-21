@@ -3,7 +3,7 @@ import streamlit as st
 from config import *
 from logic.handler import extract_column_names_from_sheet, get_encode_file, get_full_type_df, replace_lines_in_file,load_all_sheets
 from logic.mapping import build_full_mapping, build_mappings
-from logic.text_processing import extract_sql_info, replace_by_mapping
+from logic import text_processing
 import pandas as pd
 import re
 import os
@@ -13,6 +13,7 @@ import xlwings as xw
 from utils import file_utils
 from logic import merge_source
 from tools import validate_rule_tool
+from logic import detect_rules
 
 
 st.set_page_config(page_title="Code Checker", layout="wide")
@@ -412,7 +413,6 @@ with tab5:
             # else:
             #     st.write("Không có log nào được ghi lại trong quá trình kiểm tra.")
 
-
 with tab6:
     # Input field for pasted code
     code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
@@ -426,9 +426,7 @@ with tab6:
             valid_columns = extract_column_names_from_sheet()
 
             # Step 2: Extract used keys (columns/tables) from input code
-            (used_keys, unused_keys) = extract_sql_info(code_input, valid_columns)
-            if unused_keys:
-                st.warning(unused_keys)
+            (used_keys, unused_keys) = text_processing.extract_full_keys(code_input, valid_columns)
 
             if not used_keys:
                 st.warning("No matching columns or tables found in your code.")
@@ -460,8 +458,11 @@ with tab6:
                 st.markdown("### Matched Table/Column Types")
                 st.dataframe(filtered_df, use_container_width=True)
                 sheets = load_all_sheets()
-                schema_dict, table_dict, column_dict = build_mappings(sheets)
-                mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict)
-                output_code = replace_by_mapping(code_input, mapping)
+                schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
+                mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
+                output_code = text_processing.replace_by_mapping(code_input, mapping)
+    
+                detect_rules.check_final_rules(code_input, unused_keys)
+
                 st.markdown("### Processed Code with Replacements")
                 st.code(output_code)

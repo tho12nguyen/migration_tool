@@ -12,16 +12,17 @@ SHEET_CONFIG_MAP = {
     "schema": {"number_header_rows": 3, "filter_columns": ["D"], "num_cols": 8, "num_rows": 15},
     "table": {"number_header_rows": 3, "filter_columns": ["E"], "num_cols": 9, "num_rows": 700},
     "column": {"number_header_rows": 3, "filter_columns": ["E", "F"], "num_cols": 10, "num_rows": 11_000},
+    "key": {"number_header_rows": 3, "filter_columns": [ "F"], "num_cols": 9, "num_rows": 100},
     "type1": {"number_header_rows": 1, "filter_columns": ["A", "C"], "num_cols": 8, "num_rows": 1200},
     "type2": {"number_header_rows": 1, "filter_columns": ["A", "C"], "num_cols": 8, "num_rows": 3500},
     "type3": {"number_header_rows": 1, "filter_columns": ["A", "C"], "num_cols": 8, "num_rows": 300},
 }
-EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'type1', 'type2', 'type3']
-ENCODE_LIST = ['cp932', 'shift_jis']
+EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1', 'type2', 'type3']
 
 # CONFIG PATH
 OUTPUT_EVIDENCE_EXCEL_NAME = "evidence.xlsx"
 RESOURCE_ROOT_PATH = os.getenv("RESOURCE_ROOT_PATH")
+RULES_ROOT_PATH = RESOURCE_ROOT_PATH + "/resources/rules"
 FULL_EVIDENCE_INPUT_PATH = RESOURCE_ROOT_PATH + "/resources/evidence.xlsx" 
 ROOT_APP_PATH = os.getenv("ROOT_APP_PATH")
 ROOT_OUTPUT_PATH = os.getenv("ROOT_OUTPUT_PATH")

@@ -4,17 +4,16 @@ import streamlit as st
 from typing import List
 from config import OUTPUT_EVIDENCE_EXCEL_NAME
 from logic.mapping import build_full_mapping, build_mappings, get_full_schema_table_and_column_names_from_sheets
-from logic.text_processing import extract_sql_info, replace_by_mapping
+from logic.text_processing import extract_full_keys, replace_by_mapping
 from utils.excel_utils import filter_excel
 from typing import Dict
-import streamlit as st
 import chardet
 import pandas as pd
 from config import FULL_EVIDENCE_INPUT_PATH
 import xlwings as xw
+from logic import detect_rules
 
 @st.cache_data()
-
 def get_encode_file(file_path):
     encodings = ['cp932', 'shift_jis', 'utf-8', 'euc_jp', 'latin-1']
     result_encodings = None
@@ -42,7 +41,6 @@ def extract_column_names_from_sheet() -> set:
     sheets = load_all_sheets()
     return get_full_schema_table_and_column_names_from_sheets(sheets)
 
-
 @st.cache_data()
 def get_full_type_df() -> pd.DataFrame:
     full_type_df = pd.DataFrame()
@@ -54,10 +52,11 @@ def get_full_type_df() -> pd.DataFrame:
     full_type_df['column_name'] = full_type_df['column_name'].str.upper()
     return full_type_df
 
+
 def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line: int, encoding: str):
     col_set = extract_column_names_from_sheet()
     sheets = load_all_sheets()
-    schema_dict, table_dict, column_dict = build_mappings(sheets)
+    schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
 
     with open(file_path, 'r', encoding=encoding) as f:
         lines = f.readlines()
@@ -66,7 +65,7 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
     target = lines[start_line - 1:end_line]
     after = lines[end_line:]
 
-    replaced_block = process_and_replace_lines(app, target, col_set, schema_dict, table_dict, column_dict, file_path)
+    replaced_block = process_and_replace_lines(app, target, col_set, schema_dict, table_dict, column_dict, key_dict, file_path)
     if replaced_block:
         st.code(replaced_block)
         result_lines = before + [replaced_block + '\n'] + after
@@ -74,11 +73,9 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
         with open(file_path, 'w', encoding=encoding) as f:
             f.writelines(result_lines)
 
-def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schema_dict, table_dict, column_dict, souce_file_path: str) -> str:
+def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schema_dict, table_dict, column_dict, key_dict, souce_file_path: str) -> str:
     block = ''.join(lines)
-    (used_keys, unused_keys) = extract_sql_info(block, valid_columns)
-    if unused_keys:
-        st.warning(unused_keys)
+    (used_keys, unused_keys) = extract_full_keys(block, valid_columns)
     st.write(f"Full keys: {len(used_keys)} keys")
     st.code(','.join(used_keys))
 
@@ -108,6 +105,8 @@ def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schem
         )
     else:
         st.warning("No Excel app instance provided, skipping evidence data export.")
+    
+    detect_rules.check_final_rules(block, unused_keys)
 
-    mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict)
+    mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
     return replace_by_mapping(block, mapping)

@@ -16,7 +16,7 @@ def remove_system_out_print(text: str) -> str:
     return re.sub(pattern, '', text, flags=re.DOTALL)
 
 
-def extract_sql_info(text: str, valid_columns: set) -> Tuple[List[str], List[str]]:
+def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[str]]:
     found = []
     notFound = []
     text = remove_comments(text)
@@ -69,3 +69,101 @@ def replace_by_mapping(query: str, mapping: dict) -> str:
         final_line = f"{raw_line}//{comment_part}" if comment_part else raw_line
         output_lines.append(final_line)
     return "\n".join(output_lines)
+
+def extract_sql_fragments(text: str) -> str:
+    """
+    Extract SQL-like fragments from mixed XML/Java/SQL files.
+    """
+    text = remove_comments(text)
+    text = remove_system_out_print(text)
+    return text
+
+def extract_query_text(raw_sql: str) -> str:
+    """
+    Extracts SQL text from:
+    - Plain SQL
+    - MyBatis XML <insert>, <update>, <select>
+    - Java .append("...") style (with concatenations)
+    - Inline string concatenations
+    - Full string assignments
+    """
+    text = raw_sql
+
+    # 1. MyBatis XML inner SQL
+    if re.search(r"<(insert|update|delete|select)", text, re.IGNORECASE):
+        inner = re.findall(r">(.*)<", text, re.DOTALL)
+        if inner:
+            text = "\n".join(inner)
+
+    # 2. Java .append(...) (captures multiple string parts, even with +)
+    java_parts = re.findall(r'\.append\(\s*(".*?")\s*\)', text, re.DOTALL)
+    if java_parts:
+        joined = []
+        for part in java_parts:
+            # extract quoted substrings from inside append (may have + concatenations)
+            strings = re.findall(r'"([^"]*)"', part)
+            joined.extend(strings)
+        text = " ".join(joined)
+
+    # 3. Inline concatenated strings like "..." + "..."
+    concat_parts = re.findall(r'"([^"]*)"\s*\+', text)
+    if concat_parts:
+        text = " ".join(concat_parts)
+
+    # 4. String assignment like: String sql = "....";
+    assign_match = re.findall(r'=\s*"([^"]*)"', text)
+    if assign_match:
+        text = " ".join(assign_match)
+
+    # 5. Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+def find_aliases(sql: str):
+    """
+    Detect table and column aliases in SQL.
+    - Table aliases: FROM / JOIN <table> [AS] <alias>
+    - Column aliases: expr AS alias OR expr alias
+    """
+    tables = set()
+    table_aliases = set()
+    column_aliases = set()
+
+    sql_clean = " ".join(sql.split())
+
+    # Identifier regex: words + Japanese full-width characters
+    IDENT = r'[\w\u4E00-\u9FA5\u3040-\u309F\u30A0-\u30FF\uFF10-\uFF5A]+'
+
+    # --- Table names with optional alias ---
+    table_pattern = re.compile(
+        rf'\b(?:FROM|JOIN)\s+((?:"[^"]+"|{IDENT})(?:\.(?:"[^"]+"|{IDENT}))*)'
+        rf'(?:\s+(?:AS\s+)?({IDENT}))?(?=\s|,|$)',
+        re.IGNORECASE
+    )
+    for match in table_pattern.finditer(sql_clean):
+        tables.add(match.group(1))
+        if match.group(2):
+            table_aliases.add(match.group(2))
+
+    # --- Column aliases with AS ---
+    col_as_pattern = re.compile(
+        rf'(?:\w+\s*\([^\)]*\)|{IDENT})\s+AS\s+({IDENT})(?=,|\s+FROM|\s+WHERE|\s+GROUP|\s+ORDER|\s*$)',
+        re.IGNORECASE
+    )
+    for match in col_as_pattern.finditer(sql_clean):
+        column_aliases.add(match.group(1))
+
+    # --- Column aliases without AS ---
+    col_no_as_pattern = re.compile(
+        rf'(?:\w+\s*\([^\)]*\)|{IDENT})\s+({IDENT})(?=,|\s+FROM|\s+WHERE|\s+GROUP|\s+ORDER|\s*$)',
+        re.IGNORECASE
+    )
+    for match in col_no_as_pattern.finditer(sql_clean):
+        name = match.group(1)
+        if name not in tables and name not in table_aliases:
+            column_aliases.add(name)
+
+    result = table_aliases | column_aliases
+
+    return sorted(result)
