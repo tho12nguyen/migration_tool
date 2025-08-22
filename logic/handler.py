@@ -1,7 +1,7 @@
 
 from pathlib import Path
 import streamlit as st
-from typing import List
+from typing import List, Set
 from config import OUTPUT_EVIDENCE_EXCEL_NAME
 from logic.mapping import build_full_mapping, build_mappings, get_full_schema_table_and_column_names_from_sheets
 from logic.text_processing import extract_full_keys, replace_by_mapping
@@ -54,10 +54,6 @@ def get_full_type_df() -> pd.DataFrame:
 
 
 def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line: int, encoding: str):
-    col_set = extract_column_names_from_sheet()
-    sheets = load_all_sheets()
-    schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
-
     with open(file_path, 'r', encoding=encoding) as f:
         lines = f.readlines()
 
@@ -65,7 +61,9 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
     target = lines[start_line - 1:end_line]
     after = lines[end_line:]
 
-    replaced_block = process_and_replace_lines(app, target, col_set, schema_dict, table_dict, column_dict, key_dict, file_path)
+    evidence_excel_path = str(Path(file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
+
+    replaced_block = process_and_replace_lines(app, target, evidence_excel_path)
     if replaced_block:
         st.code(replaced_block)
         result_lines = before + [replaced_block + '\n'] + after
@@ -73,40 +71,50 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
         with open(file_path, 'w', encoding=encoding) as f:
             f.writelines(result_lines)
 
-def process_and_replace_lines(app: xw.App,lines: List[str], valid_columns, schema_dict, table_dict, column_dict, key_dict, souce_file_path: str) -> str:
+def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path: str,  extra_tables: List[str]=[]) -> str:
+    block, unused_keys, filter_keys, mapping = show_data_type(lines, extra_tables)
+
+    # Export used keys to Excel
+    if app:
+        filter_excel(app, evidence_excel_path, filter_keys)
+        filter_excel(
+            app,
+            excel_path=evidence_excel_path,
+            filter_values=filter_keys
+        )
+    else:
+        st.warning("No Excel app instance provided, skipping evidence data export.")
+    
+    new_code, output_mul_mapping = replace_by_mapping(block, mapping)
+
+    detect_rules.check_final_rules(block, unused_keys, output_mul_mapping)
+
+    return new_code
+
+def show_data_type(lines, extra_tables):
+    valid_columns = extract_column_names_from_sheet()
+    sheets = load_all_sheets()
+    schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
+
     block = ''.join(lines)
     (used_keys, unused_keys) = extract_full_keys(block, valid_columns)
-    st.write(f"Full keys: {len(used_keys)} keys")
+    if extra_tables:
+        used_keys.extend(extra_tables)
     st.code(','.join(used_keys))
 
-    # Load Excel sheets
-    filter_kes = set(used_keys)
-    table_list = { table_name for  table_name in filter_kes if  table_name in table_dict }
+    filter_keys = set(used_keys)
+
+    table_list = { table_name for  table_name in filter_keys if  table_name in table_dict }
     if table_list:
-        st.write(f"Tables: {len(table_list)} tables")
+        st.write(f"Tables:")
         st.code(','.join(table_list))
     full_type_df = get_full_type_df()
-    filtered_df  = full_type_df[full_type_df['table_name'].isin(filter_kes) & full_type_df['column_name'].isin(filter_kes)]
+    filtered_df  = full_type_df[full_type_df['table_name'].isin(filter_keys) & full_type_df['column_name'].isin(filter_keys)]
 
     filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
     filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
     filtered_df = filtered_df.sort_values(['column_order', 'table_order'])
     filtered_df = filtered_df.drop(columns=['column_order', 'table_order'])
     st.dataframe(filtered_df)
-
-    # Export used keys to Excel
-    excel_full_path = str(Path(souce_file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
-    if app:
-        filter_excel(app, excel_full_path, filter_kes)
-        filter_excel(
-            app,
-            excel_path=excel_full_path,
-            filter_values=filter_kes
-        )
-    else:
-        st.warning("No Excel app instance provided, skipping evidence data export.")
-    
-    detect_rules.check_final_rules(block, unused_keys)
-
     mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
-    return replace_by_mapping(block, mapping)
+    return block,unused_keys,filter_keys,mapping

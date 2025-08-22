@@ -32,8 +32,10 @@ def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[st
                     notFound.append(word_upper)
     return (found, notFound)
 
-def replace_by_mapping(query: str, mapping: dict) -> str:
+def replace_by_mapping(query: str, mapping: dict) -> Tuple[str, List[str]]:
     output_lines = []
+    output_mul_mapping = []
+
     num_block_code_flag = 0
     for line in query.splitlines():
         original_line = line.strip()
@@ -62,13 +64,15 @@ def replace_by_mapping(query: str, mapping: dict) -> str:
         for word in extract_japanese_alphanum(code_part):
             if word in mapping:
                 replacements = mapping[word]
-                replacement = next(iter(replacements)) if len(replacements) == 1 else str(list(replacements))
+                if len(replacements) > 1:
+                    output_mul_mapping.append(f'{word} -> {list(replacements)}')
+                replacement = next(iter(replacements)) if len(replacements) == 1 else "\n".join(replacements)
                 if replacement.lower() != word.lower():
                     raw_line = re.sub(rf'\b{re.escape(word)}\b', replacement, raw_line)
         # Reattach comment
         final_line = f"{raw_line}//{comment_part}" if comment_part else raw_line
         output_lines.append(final_line)
-    return "\n".join(output_lines)
+    return "\n".join(output_lines), output_mul_mapping
 
 def extract_sql_fragments(text: str) -> str:
     """

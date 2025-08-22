@@ -28,7 +28,11 @@ def build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict
     for table in used_keys:
         if table in table_dict:
             full_mapping[table] = table_dict[table]
-            full_mapping.update(column_dict.get(table, {}))
+            column_dict_by_table = column_dict.get(table, {})
+            for column, values in column_dict_by_table.items():
+                if column not in full_mapping:
+                    full_mapping[column] = set()
+                full_mapping[column].update(values)
     return full_mapping
 
 

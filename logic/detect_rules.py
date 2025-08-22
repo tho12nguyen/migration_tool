@@ -60,17 +60,21 @@ def detect_rules(raw_query, rules):
     return results, query_text, aliasSet
 
 
-def check_final_rules(code_input, unused_keys):
+def check_final_rules(code_input, unused_keys, output_mul_mapping):
     data =  detect_rules (code_input, load_all_rules())
     matched_rules = data[0]
     
     st.markdown("### Check rules")
-    if len(matched_rules) == 0 and  len(unused_keys) == 0:
+    if len(matched_rules) == 0 and  len(unused_keys) == 0 and len(output_mul_mapping) == 0:
         st.success("No rules matched")
 
-    if unused_keys:
+    if unused_keys or output_mul_mapping:
         st.markdown("##### Rule 1:")
-        st.warning(','.join(unused_keys))
+        if unused_keys:
+            st.warning(','.join(unused_keys))
+        if output_mul_mapping:
+            for mapping in output_mul_mapping:
+                st.warning(mapping)
 
     # st.write(data[0])
     # st.write(f'final query: {data[1]}')

@@ -1,9 +1,7 @@
 from typing import List
 import streamlit as st
 from config import *
-from logic.handler import extract_column_names_from_sheet, get_encode_file, get_full_type_df, replace_lines_in_file,load_all_sheets
-from logic.mapping import build_full_mapping, build_mappings
-from logic import text_processing
+from logic import handler
 import pandas as pd
 import re
 import os
@@ -13,7 +11,6 @@ import xlwings as xw
 from utils import file_utils
 from logic import merge_source
 from tools import validate_rule_tool
-from logic import detect_rules
 
 
 st.set_page_config(page_title="Code Checker", layout="wide")
@@ -197,12 +194,12 @@ with tab2:
 
                                 st.code(f"File: {selected_file}")
                                 try:
-                                    byte_data, encoding = get_encode_file(selected_file)
+                                    byte_data, encoding = handler.get_encode_file(selected_file)
                                     if not encoding:
                                         st.error(f"Encoding could not be detected for {selected_file}")
                                         continue
 
-                                    replace_lines_in_file(app, selected_file, start_line, end_line, encoding)
+                                    handler.replace_lines_in_file(app, selected_file, start_line, end_line, encoding)
                                     st.success(f"Finished No.{item_no}: Lines {start_line}-{end_line}, Encoding: {encoding}")
                                 except Exception as e:
                                     st.error(f"Error processing No.{item_no}: {e}")
@@ -310,7 +307,7 @@ with tab4:
                                         st.write(f"Original file: {original_path_file}")
                                         st.write(f"Change file: {change_path_file}")
                                         st.write(f"Destination file: {dest_file_path}")
-                                        _, encoding = get_encode_file(original_path_file)
+                                        _, encoding = handler.get_encode_file(original_path_file)
                                         if not encoding:
                                             st.error(f"{encoding}: Encoding could not be detected for {original_path_file}")
                                             continue
@@ -407,62 +404,36 @@ with tab5:
             else:
                 st.write("Không phát hiện dòng nào chứa CAST với trạng thái x.\n")
             
-            # if cast_logs:
-            #     for log in cast_logs:
-            #         st.write(log)
-            # else:
-            #     st.write("Không có log nào được ghi lại trong quá trình kiểm tra.")
 
 with tab6:
     # Input field for pasted code
     code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
 
+    txt_tables =st.text_input("Tables (comma-separated)")
+
+    col1, col2, col3, col4 = st.columns(4)
     # Button to trigger analysis
-    if st.button("Process Code"):
+    if col1.button("Check data type"):
         if not code_input.strip():
             st.warning("Please input code first.")
         else:
-            # Step 1: Extract valid column names from Excel
-            valid_columns = extract_column_names_from_sheet()
-
-            # Step 2: Extract used keys (columns/tables) from input code
-            (used_keys, unused_keys) = text_processing.extract_full_keys(code_input, valid_columns)
-
-            if not used_keys:
-                st.warning("No matching columns or tables found in your code.")
-            else:
-                st.success(f"Found {len(used_keys)} used keys.")
-                st.code(', '.join(used_keys), language='text')
-                # st.code(f'columns = {used_keys}', language='python')
-
-                # Step 3: Load the full type mapping sheet
-                full_type_df = get_full_type_df()
-
-                # Step 4: Filter by used keys
-                filter_keys = set(used_keys)
-                filtered_df = full_type_df[
-                    full_type_df['table_name'].isin(filter_keys) & 
-                    full_type_df['column_name'].isin(filter_keys)
-                ].copy()
-
-                # Step 5: Add sorting based on usage order
-                filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
-                filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
-                # filtered_df['table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
-                # filtered_df['column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x) if x in used_keys else -1)
-
-                # Step 6: Sort and display
-                filtered_df = filtered_df.sort_values(by=['column_order', 'table_order'])
-                filtered_df.drop(columns=['column_order', 'table_order'], inplace=True)
-
-                st.markdown("### Matched Table/Column Types")
-                st.dataframe(filtered_df, use_container_width=True)
-                sheets = load_all_sheets()
-                schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
-                mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
-                output_code = text_processing.replace_by_mapping(code_input, mapping)
-    
-                detect_rules.check_final_rules(code_input, unused_keys)
-
+            extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
+            handler.show_data_type(code_input, extra_tables)
+        pass
+    if col2.button("Export full Code"):
+        if not code_input.strip():
+            st.warning("Please input code first.")
+        else:
+            try:
+                evidence_excel_path = Path(RESOURCE_ROOT_PATH) / OUTPUT_EVIDENCE_EXCEL_NAME
+                shutil.copy(FULL_EVIDENCE_INPUT_PATH, evidence_excel_path)
+                extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
+                app = xw.App(visible=False)
+                output_code = handler.process_and_replace_lines(app, code_input, evidence_excel_path, extra_tables)
                 st.markdown("### Processed Code with Replacements")
+                st.warning(f"Exported evidence to: {evidence_excel_path}")
                 st.code(output_code)
+            finally:
+                if 'app' in locals():
+                    app.quit()
+                    del app
