@@ -67,6 +67,7 @@ def replace_by_mapping(query: str, mapping: dict, new_col_name_to_table_and_data
     num_block_code_flag = 0
     for line in query.splitlines():
         table_and_data_types = []
+        col_data_type_set = set()
         original_line = line.strip()
         # Skip block comment lines
         if (original_line.startswith("/*") or original_line.startswith("<!--")):
@@ -95,8 +96,9 @@ def replace_by_mapping(query: str, mapping: dict, new_col_name_to_table_and_data
                 replacements = mapping[word]
                 if len(replacements) > 0:
                     new_word = list(replacements)[0]
-                    if new_word in new_col_name_to_table_and_data_type_dict:
+                    if new_word in new_col_name_to_table_and_data_type_dict and new_word not in col_data_type_set:
                         table_and_data_types.append((new_word, new_col_name_to_table_and_data_type_dict[new_word]))
+                        col_data_type_set.add(new_word)
                 if len(replacements) > 1:
                     output_mul_mapping.append(f'{word} -> {list(replacements)}')
                 replacement = next(iter(replacements)) if len(replacements) == 1 else "\n".join(replacements)

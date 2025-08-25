@@ -59,6 +59,19 @@ def detect_rules(raw_query, rules):
                     })
     return results, query_text, aliasSet
 
+def get_type_mapping(data_type: str) -> str:
+    type_mapping = {
+        'character varying': 'CAST(? AS VARCHAR)',
+        'smallint': 'CAST(? AS SMALLINT)',
+        'bigint': 'CAST(? AS BIGINT)',
+        'timestamp without time zone': 'CAST(? AS TIMESTAMP)',
+        'text': 'CAST(? AS TEXT)',
+        'double precision': 'CAST(? AS DOUBLE PRECISION)',
+        'character': 'CAST(? AS VARCHAR)',
+        'integer': 'CAST(? AS INTEGER)',
+        'numeric': 'CAST(? AS NUMERIC)'
+    }
+    return type_mapping.get(data_type.lower(), data_type)
 
 def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_mapping):
     data =  detect_rules (code_input, load_all_rules())
@@ -84,7 +97,10 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_
             st.warning(data_by_line[0])
             for data_by_col in data_by_line[1]:
                 for (table_name, data_type) in data_by_col[1]:
-                    st.write(f'{table_name}.{data_by_col[0]} : {data_type}')
+                    st.markdown(
+                        f"**{data_by_col[0]}**: **`{data_type}`** (table: {table_name}) ---> **{get_type_mapping(data_type)}**"
+                    )
+
 
     # st.write(data[0])
     # st.write(f'final query: {data[1]}')

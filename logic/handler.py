@@ -91,7 +91,7 @@ def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path:
 
     return new_code
 
-def show_data_type(lines, extra_tables):
+def show_data_type(lines, extra_tables, only_show=False):
     valid_columns = extract_column_names_from_sheet()
     sheets = load_all_sheets()
     schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
@@ -111,18 +111,10 @@ def show_data_type(lines, extra_tables):
     full_type_df = get_full_type_df()
     filtered_df  = full_type_df[full_type_df['table_name'].isin(filter_keys) & full_type_df['column_name'].isin(filter_keys)]
 
-    filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
-    filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
-    filtered_df = filtered_df.sort_values(['column_order', 'table_order'])
-    filtered_df = filtered_df.drop(columns=['column_order', 'table_order'])
     mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
-    filtered_df['new_col_name'] = filtered_df['column_name'].apply(lambda x: mapping[x] if x in mapping else x)
-    filtered_df['new_table_name'] = filtered_df['table_name'].apply(lambda x: mapping[x] if x in mapping else x)
-    show_df = filtered_df[["table_name", "table_type", 'column_name', "new_col_name", "data_type", "is_nullable", "new_table_name"]]
-    st.dataframe(show_df)
 
     new_col_name_to_table_and_data_type_dict : dict[str, list]= {}
-    for _, row in show_df.iterrows():
+    for _, row in filtered_df.iterrows():
         table_name = row["table_name"]
         col_name = row["column_name"]
         data_type = row['data_type']
@@ -135,4 +127,13 @@ def show_data_type(lines, extra_tables):
                     new_col_name_to_table_and_data_type_dict[new_col_name] = []
                 items = new_col_name_to_table_and_data_type_dict.get(new_col_name)
                 items.append((new_tbl_name, data_type))
+    if only_show:
+        filtered_df.loc[:, 'table_order'] = filtered_df['table_name'].apply(lambda x: used_keys.index(x))
+        filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
+        filtered_df = filtered_df.sort_values(['column_order', 'table_order'])
+        filtered_df = filtered_df.drop(columns=['column_order', 'table_order'])
+        filtered_df['new_col_name'] = filtered_df['column_name'].apply(lambda x: mapping[x] if x in mapping else x)
+        filtered_df['new_table_name'] = filtered_df['table_name'].apply(lambda x: mapping[x] if x in mapping else x)
+        show_df = filtered_df[["table_name", "table_type", 'column_name', "new_col_name", "data_type", "is_nullable", "new_table_name"]]
+        st.dataframe(show_df)
     return block,unused_keys,filter_keys,mapping, new_col_name_to_table_and_data_type_dict

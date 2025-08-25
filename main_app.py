@@ -418,7 +418,7 @@ with tab6:
             st.warning("Please input code first.")
         else:
             extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
-            handler.show_data_type(code_input, extra_tables)
+            handler.show_data_type(code_input, extra_tables, True)
         pass
     if col2.button("Export full Code"):
         if not code_input.strip():
