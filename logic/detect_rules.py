@@ -60,12 +60,15 @@ def detect_rules(raw_query, rules):
     return results, query_text, aliasSet
 
 
-def check_final_rules(code_input, unused_keys, output_mul_mapping):
+def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_mapping):
     data =  detect_rules (code_input, load_all_rules())
     matched_rules = data[0]
     
     st.markdown("### Check rules")
-    if len(matched_rules) == 0 and  len(unused_keys) == 0 and len(output_mul_mapping) == 0:
+    if len(matched_rules) == 0 and \
+        len(unused_keys) == 0 and \
+        len(output_mul_mapping) == 0 and \
+        len(output_rule2_mapping) == 0:
         st.success("No rules matched")
 
     if unused_keys or output_mul_mapping:
@@ -75,6 +78,13 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping):
         if output_mul_mapping:
             for mapping in output_mul_mapping:
                 st.warning(mapping)
+    if output_rule2_mapping:
+        st.markdown("##### Rule 2:")
+        for data_by_line in output_rule2_mapping:
+            st.warning(data_by_line[0])
+            for data_by_col in data_by_line[1]:
+                for (table_name, data_type) in data_by_col[1]:
+                    st.write(f'{table_name}.{data_by_col[0]} : {data_type}')
 
     # st.write(data[0])
     # st.write(f'final query: {data[1]}')
@@ -86,3 +96,4 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping):
             st.markdown(f"##### Rule {rule['rule_no']}:")
             old_rule = rule["rule_no"]
         st.warning(f"{rule['detect_value']} -> {rule['replace_value']}")
+

@@ -21,7 +21,7 @@ def build_mappings(sheets) -> tuple:
         key_dict.setdefault(row[5], set()).add(row[8])
     return schema_dict, table_dict, column_dict, key_dict
 
-def build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict) -> dict:
+def build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict) -> dict[str, set]:
     full_mapping = schema_dict.copy()
     full_mapping.update(key_dict)
     

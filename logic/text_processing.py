@@ -15,6 +15,33 @@ def remove_system_out_print(text: str) -> str:
     pattern = r'System\.out\.(print|println|printf)\s*\((?:[^)(]*|\([^)(]*\))*?\)\s*;'
     return re.sub(pattern, '', text, flags=re.DOTALL)
 
+def has_sql_condition(sql_line: str) -> bool:
+    """
+    Detect if a SQL line contains common condition operators.
+    Covers comparison, range, null checks, pattern matching, set membership.
+    """
+    condition_patterns = [
+        r"\s*=\s*",          # equals
+        r"\s*!=\s*",         # not equal (ANSI)
+        r"<>",               # not equal (SQL standard)
+        r"\s*>=\s*",         # greater or equal
+        r"\s*<=\s*",         # less or equal
+        r"\s*>\s*",          # greater
+        r"\s*<\s*",          # less
+        r"\bIN\b",           # IN (...)
+        r"\bNOT\s+IN\b",     # NOT IN (...)
+        r"\bLIKE\b",         # LIKE
+        r"\bNOT\s+LIKE\b",   # NOT LIKE
+        r"\bBETWEEN\b",      # BETWEEN
+        r"\bIS\s+NULL\b",    # IS NULL
+        r"\bIS\s+NOT\s+NULL\b",  # IS NOT NULL
+        r"\bEXISTS\b",       # EXISTS
+        r"\bANY\b",          # = ANY(...)
+        r"\bALL\b",          # = ALL(...)
+    ]
+
+    pattern = "|".join(condition_patterns)
+    return re.search(pattern, sql_line, re.IGNORECASE) is not None
 
 def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[str]]:
     found = []
@@ -32,12 +59,14 @@ def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[st
                     notFound.append(word_upper)
     return (found, notFound)
 
-def replace_by_mapping(query: str, mapping: dict) -> Tuple[str, List[str]]:
+def replace_by_mapping(query: str, mapping: dict, new_col_name_to_table_and_data_type_dict: dict[str, Tuple]) -> Tuple[str, List[str]]:
     output_lines = []
     output_mul_mapping = []
+    output_rule2_mapping = []
 
     num_block_code_flag = 0
     for line in query.splitlines():
+        table_and_data_types = []
         original_line = line.strip()
         # Skip block comment lines
         if (original_line.startswith("/*") or original_line.startswith("<!--")):
@@ -64,6 +93,10 @@ def replace_by_mapping(query: str, mapping: dict) -> Tuple[str, List[str]]:
         for word in extract_japanese_alphanum(code_part):
             if word in mapping:
                 replacements = mapping[word]
+                if len(replacements) > 0:
+                    new_word = list(replacements)[0]
+                    if new_word in new_col_name_to_table_and_data_type_dict:
+                        table_and_data_types.append((new_word, new_col_name_to_table_and_data_type_dict[new_word]))
                 if len(replacements) > 1:
                     output_mul_mapping.append(f'{word} -> {list(replacements)}')
                 replacement = next(iter(replacements)) if len(replacements) == 1 else "\n".join(replacements)
@@ -71,8 +104,10 @@ def replace_by_mapping(query: str, mapping: dict) -> Tuple[str, List[str]]:
                     raw_line = re.sub(rf'\b{re.escape(word)}\b', replacement, raw_line)
         # Reattach comment
         final_line = f"{raw_line}//{comment_part}" if comment_part else raw_line
+        if len(table_and_data_types) > 0 and has_sql_condition(raw_line):
+            output_rule2_mapping.append((final_line, table_and_data_types))
         output_lines.append(final_line)
-    return "\n".join(output_lines), output_mul_mapping
+    return "\n".join(output_lines), output_mul_mapping, output_rule2_mapping
 
 def extract_sql_fragments(text: str) -> str:
     """

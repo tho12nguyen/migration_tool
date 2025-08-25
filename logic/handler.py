@@ -72,7 +72,7 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
             f.writelines(result_lines)
 
 def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path: str,  extra_tables: List[str]=[]) -> str:
-    block, unused_keys, filter_keys, mapping = show_data_type(lines, extra_tables)
+    block, unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables)
 
     # Export used keys to Excel
     if app:
@@ -85,9 +85,9 @@ def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path:
     else:
         st.warning("No Excel app instance provided, skipping evidence data export.")
     
-    new_code, output_mul_mapping = replace_by_mapping(block, mapping)
+    new_code, output_mul_mapping, output_rule2_mapping = replace_by_mapping(block, mapping, new_col_name_to_table_and_data_type_dict)
 
-    detect_rules.check_final_rules(block, unused_keys, output_mul_mapping)
+    detect_rules.check_final_rules(block, unused_keys, output_mul_mapping, output_rule2_mapping)
 
     return new_code
 
@@ -115,6 +115,24 @@ def show_data_type(lines, extra_tables):
     filtered_df.loc[:, 'column_order'] = filtered_df['column_name'].apply(lambda x: used_keys.index(x))
     filtered_df = filtered_df.sort_values(['column_order', 'table_order'])
     filtered_df = filtered_df.drop(columns=['column_order', 'table_order'])
-    st.dataframe(filtered_df)
     mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
-    return block,unused_keys,filter_keys,mapping
+    filtered_df['new_col_name'] = filtered_df['column_name'].apply(lambda x: mapping[x] if x in mapping else x)
+    filtered_df['new_table_name'] = filtered_df['table_name'].apply(lambda x: mapping[x] if x in mapping else x)
+    show_df = filtered_df[["table_name", "table_type", 'column_name', "new_col_name", "data_type", "is_nullable", "new_table_name"]]
+    st.dataframe(show_df)
+
+    new_col_name_to_table_and_data_type_dict : dict[str, list]= {}
+    for _, row in show_df.iterrows():
+        table_name = row["table_name"]
+        col_name = row["column_name"]
+        data_type = row['data_type']
+        new_table_names: set = mapping.get(table_name, {})
+        new_col_names: set = mapping.get(col_name, {})
+
+        for new_tbl_name in new_table_names:
+            for new_col_name in new_col_names:
+                if new_col_name not in new_col_name_to_table_and_data_type_dict:
+                    new_col_name_to_table_and_data_type_dict[new_col_name] = []
+                items = new_col_name_to_table_and_data_type_dict.get(new_col_name)
+                items.append((new_tbl_name, data_type))
+    return block,unused_keys,filter_keys,mapping, new_col_name_to_table_and_data_type_dict
