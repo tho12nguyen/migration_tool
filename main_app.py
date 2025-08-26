@@ -397,7 +397,7 @@ with tab5:
             cast_results, cast_logs = validate_rule_tool.scan_folder_for_cast(folder, excel_data)
             if cast_results:
                     for file_path, info in cast_results.items():
-                        st.write(f'File: {file_path} | status (Excel): {info['status']}\n' )
+                        st.write(f"File: {file_path} | status (Excel): {info['status']}\n" )
                         for line in info["lines"]:
                             st.write(f"    {line}\n")
                         st.write("\n")
