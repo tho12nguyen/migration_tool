@@ -26,6 +26,10 @@ This is a Streamlit application designed to automate a code migration process.
     python -m venv .venv
     .\.venv\Scripts\activate
     ```
+    If you get an error about execution policies, run:
+    ```bash
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+    ```
 
     **On Linux and macOS:**
 
