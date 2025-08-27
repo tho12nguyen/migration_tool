@@ -15,7 +15,7 @@ from logic import detect_rules
 
 @st.cache_data()
 def get_encode_file(file_path):
-    encodings = ['cp932', 'shift_jis', 'utf-8', 'euc_jp', 'latin-1']
+    encodings = ['euc_jp', 'cp932', 'shift_jis', 'utf-8', 'latin-1']
     result_encodings = None
     for enc in encodings:
         try:
@@ -53,7 +53,7 @@ def get_full_type_df() -> pd.DataFrame:
     return full_type_df
 
 
-def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line: int, encoding: str):
+def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line: int, encoding: str, source_type: str):
     with open(file_path, 'r', encoding=encoding) as f:
         lines = f.readlines()
 
@@ -63,7 +63,7 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
 
     evidence_excel_path = str(Path(file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
 
-    replaced_block = process_and_replace_lines(app, target, evidence_excel_path)
+    replaced_block = process_and_replace_lines(app, target, evidence_excel_path, source_type)
     if replaced_block:
         st.code(replaced_block)
         result_lines = before + [replaced_block + '\n'] + after
@@ -71,7 +71,7 @@ def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line
         with open(file_path, 'w', encoding=encoding) as f:
             f.writelines(result_lines)
 
-def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path: str,  extra_tables: List[str]=[]) -> str:
+def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path: str,  source_type: str, extra_tables: List[str]=[]) -> str:
     block, unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables)
 
     # Export used keys to Excel
@@ -83,11 +83,11 @@ def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path:
             filter_values=filter_keys
         )
     else:
-        st.warning("No Excel app instance provided, skipping evidence data export.")
+        st.warning("Skipping evidence data export.")
     
     new_code, output_mul_mapping, output_rule2_mapping = replace_by_mapping(block, mapping, new_col_name_to_table_and_data_type_dict)
 
-    detect_rules.check_final_rules(block, unused_keys, output_mul_mapping, output_rule2_mapping)
+    detect_rules.check_final_rules(block, unused_keys, output_mul_mapping, output_rule2_mapping, source_type)
 
     return new_code
 

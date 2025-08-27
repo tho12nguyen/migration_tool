@@ -1,12 +1,13 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-
+from dataclasses import dataclass
 from utils import common_util
 
 load_dotenv()
 
-SUB_ITEM_FOLDERS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+
+SUB_ITEM_FOLDER_OPTIONS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
 
 SHEET_CONFIG_MAP = {
     "schema": {"number_header_rows": 3, "filter_columns": ["D"], "num_cols": 8, "num_rows": 15},
@@ -19,17 +20,57 @@ SHEET_CONFIG_MAP = {
 }
 EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1', 'type2', 'type3']
 
-# CONFIG PATH
+# COMMON CONFIG PATH
 OUTPUT_EVIDENCE_EXCEL_NAME = "evidence.xlsx"
 RESOURCE_ROOT_PATH = os.getenv("RESOURCE_ROOT_PATH")
-RULES_ROOT_PATH = RESOURCE_ROOT_PATH + "/resources/rules"
 FULL_EVIDENCE_INPUT_PATH = RESOURCE_ROOT_PATH + "/resources/evidence.xlsx" 
-ROOT_APP_PATH = os.getenv("ROOT_APP_PATH")
-ROOT_OUTPUT_PATH = os.getenv("ROOT_OUTPUT_PATH")
-SVN_ROOT_PATH = os.getenv("SVN_ROOT_PATH").replace('/','\\')
-
 
 TEMPLATE_FOLDER_PATH = f'{RESOURCE_ROOT_PATH}/resources/template'
 HTML_FILE_NAME, EXCEL_FILE_NAME = common_util.get_first_htm_and_xlsx(TEMPLATE_FOLDER_PATH)
 TEMPLATE_HTML_PATH = f'{TEMPLATE_FOLDER_PATH}/{HTML_FILE_NAME}'
 TEMPLATE_EXCEL_PATH = f'{TEMPLATE_FOLDER_PATH}/{EXCEL_FILE_NAME}'
+
+# JAVA CONFIG
+RULES_ROOT_PATH = RESOURCE_ROOT_PATH + "/resources/rules/java_rules"
+ROOT_APP_PATH = os.getenv("ROOT_APP_PATH")
+ROOT_OUTPUT_PATH = os.getenv("ROOT_OUTPUT_PATH")
+SVN_ROOT_PATH = os.getenv("SVN_ROOT_PATH").replace('/','\\')
+
+# C CONFIG
+C_RULES_ROOT_PATH = RESOURCE_ROOT_PATH + "/resources/rules/c_rules"
+C_ROOT_APP_PATH = os.getenv("C_ROOT_APP_PATH")
+C_ROOT_OUTPUT_PATH = os.getenv("C_ROOT_OUTPUT_PATH")
+C_SVN_ROOT_PATH = os.getenv("C_SVN_ROOT_PATH").replace('/','\\')
+# c# CONFIG
+
+
+SOURCE_TYPE_OPTIONS = ['java', 'c']
+
+@dataclass
+class SouceConfig:
+    RULES_ROOT_PATH: str
+    ROOT_APP_PATH: str
+    ROOT_OUTPUT_PATH: str
+    SVN_ROOT_PATH: str
+    SUFFIXES: list
+
+def get_configs_by_source_type(source_type: str) -> SouceConfig:
+    match source_type.lower():
+        case 'java':
+            return SouceConfig(
+                RULES_ROOT_PATH,
+                ROOT_APP_PATH,
+                ROOT_OUTPUT_PATH,
+                SVN_ROOT_PATH,
+                 ['_after.sql', '_after.xml', '_after.java']
+            )
+        case 'c':
+            return SouceConfig(
+                C_RULES_ROOT_PATH,
+                C_ROOT_APP_PATH,
+                C_ROOT_OUTPUT_PATH,
+                C_SVN_ROOT_PATH,
+                 ['_after.sqc', '_after.h']
+            )
+        case _:
+            raise ValueError(f"value source_type: {source_type}, source_type must be either 'java' or 'c'")

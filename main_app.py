@@ -28,13 +28,13 @@ tab_titles = [
 tab1, tab2, tab3, tab4, tab5, tab6= st.tabs(tab_titles)
 
 with tab1:
+    SOURCE_TYPE = st.radio("Source Type", SOURCE_TYPE_OPTIONS, horizontal=True, key="source_type_tab1")
     ITEM_SUB_FOLDER_PATH = st.selectbox(
         "ITEM SUB_FOLDER PATH",
-        options=SUB_ITEM_FOLDERS,
+        options=SUB_ITEM_FOLDER_OPTIONS,
         index=0, 
         key="item_root_path_tab1"
     )
-    st.write("Selected sub-folder:", ITEM_SUB_FOLDER_PATH)
 
     DAILY_FOLDER_STR = st.text_input(
         "Daily folder", 
@@ -42,9 +42,6 @@ with tab1:
         key="daily_folder_tab1",
         value=common_util.get_current_date_str()
     )
-
-    FULL_ITEM_ROOT_PATH = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH}'
-    FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH}/{DAILY_FOLDER_STR}" if DAILY_FOLDER_STR else None
 
     txt_items = st.text_area("Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE):", height=300, key="input_list_tab1")
 
@@ -57,6 +54,10 @@ with tab1:
         elif not txt_items.strip():
             st.warning(" Please input item list")
         else:
+            source_configs = get_configs_by_source_type(SOURCE_TYPE)
+            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH}'
+            FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH}/{DAILY_FOLDER_STR}" if DAILY_FOLDER_STR else None
+
             raw_lines = txt_items.strip().splitlines()
             items = []
             errors = []
@@ -84,7 +85,7 @@ with tab1:
                         file_type = full_file_name.split('.')[-1]
                         file_name = full_file_name.rsplit('.', 1)[0]
 
-                        src_path = ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:]  # remove leading character
+                        src_path = source_configs.ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:]  # remove leading character
                         des_path = f'{des_folder_name}/{full_file_name}'
                         des_path_after = f'{des_folder_name}/{file_name}_after.{file_type}'
                         des_excel_path = f'{des_folder_name}/{EXCEL_FILE_NAME}'
@@ -113,7 +114,10 @@ with tab1:
                     st.dataframe(pd.DataFrame(created_items))
 
 
+# === AUTO REPLACE TOOL ===
 with tab2:
+    source_type_index = common_util.get_index_from_list(SOURCE_TYPE_OPTIONS, SOURCE_TYPE)
+    SOURCE_TYPE2 = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index=source_type_index, horizontal=True, key="source_type_tab2")
     ITEM_SUB_FOLDER_PATH2 = st.text_input(
         "ITEM_SUB_FOLDER_PATH", 
         value=ITEM_SUB_FOLDER_PATH, 
@@ -127,9 +131,6 @@ with tab2:
         placeholder='Example: 2025_07_30', 
         key="daily_folder_tab2"
     )
-
-    FULL_ITEM_ROOT_PATH2 = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH2}'
-    FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH2}/{DAILY_FOLDER_STR2}" if DAILY_FOLDER_STR2 else None
 
     txt_items2 = st.text_area(
         "Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE, END_LINE):", 
@@ -146,6 +147,11 @@ with tab2:
         elif not txt_items2.strip():
             st.warning("Please input item list.")
         else:
+            st.info("source_type: " + SOURCE_TYPE2)
+            source_configs = get_configs_by_source_type(SOURCE_TYPE)
+            FULL_ITEM_ROOT_PATH2 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH2}'
+            FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH2}/{DAILY_FOLDER_STR2}" if DAILY_FOLDER_STR2 else None
+
             raw_lines = txt_items2.strip().splitlines()
             item_data = []
             errors = []
@@ -172,8 +178,9 @@ with tab2:
                 if not FULL_DAILY_FOLDER_PATH:
                     st.warning("Folder path not resolved")
                 else:
-                    daily_files = file_utils.get_target_files(FULL_DAILY_FOLDER_PATH)
+                    daily_files = file_utils.get_target_files(FULL_DAILY_FOLDER_PATH, source_configs.SUFFIXES)
                     if not daily_files:
+                        st.info("Folder path: " + FULL_DAILY_FOLDER_PATH)
                         st.warning("?No files found in the target folder. Did you create items?")
                     else:
                         no_to_path = {
@@ -199,7 +206,7 @@ with tab2:
                                         st.error(f"Encoding could not be detected for {selected_file}")
                                         continue
 
-                                    handler.replace_lines_in_file(app, selected_file, start_line, end_line, encoding)
+                                    handler.replace_lines_in_file(app, selected_file, start_line, end_line, encoding, SOURCE_TYPE2)
                                     st.success(f"Finished No.{item_no}: Lines {start_line}-{end_line}, Encoding: {encoding}")
                                 except Exception as e:
                                     st.error(f"Error processing No.{item_no}: {e}")
@@ -208,8 +215,65 @@ with tab2:
                                 app.quit()
                                 del app
 
+
+# === DELETE UNUSED FILES ===
+with tab3:
+    source_type_index = common_util.get_index_from_list(SOURCE_TYPE_OPTIONS, SOURCE_TYPE)
+    SOURCE_TYPE3 = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index=source_type_index, horizontal=True, key="source_type_tab3")
+    ITEM_SUB_FOLDER_PATH5 = st.text_input(
+        "ITEM_SUB_FOLDER_PATH", 
+        value=ITEM_SUB_FOLDER_PATH2, 
+        placeholder='Example: Select/Insert/Update', 
+        key="item_root_path_tab5"
+    )
+
+    DAILY_FOLDER_STR5 = st.text_input(
+        "Daily folder", 
+        value=DAILY_FOLDER_STR2, 
+        placeholder='Example: 2025_07_30', 
+        key="daily_folder_tab5"
+    )
+
+    txt_file_suffixes = st.text_input(
+        "File suffixes:", 
+        value=".bak, evidence.xlsx", 
+        placeholder='Example: .bak, _v1.xlsx, ...',
+        key="file_suffixes_tab5"
+    )
+
+    del_unused_btn = st.button("Delete unused files", key="del_unused_btn")
+    unused_files = []
+    if del_unused_btn:
+        if not DAILY_FOLDER_STR5:
+            st.warning("Please input daily folder name.")
+        elif not txt_file_suffixes.strip():
+            st.warning("Please input file suffix list.")
+        else:
+            st.info("source_type: " + SOURCE_TYPE3)
+            source_configs = get_configs_by_source_type(SOURCE_TYPE3)
+            FULL_ITEM_ROOT_PATH5 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH5}'
+            FULL_DAILY_FOLDER_PATH5 = f"{FULL_ITEM_ROOT_PATH5}/{DAILY_FOLDER_STR5}" if DAILY_FOLDER_STR5 else None
+
+            file_suffixes = set(suffix.strip() for suffix in txt_file_suffixes.split(',') if suffix.strip())
+            if file_suffixes:
+                st.write(f"File suffixes: {file_suffixes}")
+                unused_files = file_utils.get_files_by_suffixes(FULL_DAILY_FOLDER_PATH5, file_suffixes)
+                if not unused_files:
+                    st.warning("No unused files found with the specified suffixes.")
+                else:
+                    st.write(unused_files)
+                    st.write(f"Total files found: {len(unused_files)}")
+                    errors = file_utils.del_files_by_paths(unused_files)
+                    if errors:
+                        st.error("Errors occurred while deleting files:")
+                        st.code("\n".join(errors))
+                    else:
+                        st.success("All unused files deleted successfully!")
+
 # Merge source
 with tab4:
+    source_type_index = common_util.get_index_from_list(SOURCE_TYPE_OPTIONS, SOURCE_TYPE)
+    SOURCE_TYPE4 = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index=source_type_index, horizontal=True, key="source_type_tab4")
     ITEM_SUB_FOLDER_PATH4 = st.text_input(
         "ITEM_SUB_FOLDER_PATH", 
         value=ITEM_SUB_FOLDER_PATH2, 
@@ -224,8 +288,6 @@ with tab4:
         key="daily_folder_tab4"
     )
 
-    FULL_ITEM_ROOT_PATH4 = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH4}'
-    FULL_DAILY_FOLDER_PATH4 = f"{FULL_ITEM_ROOT_PATH4}/{DAILY_FOLDER_STR4}" if DAILY_FOLDER_STR4 else None
 
     txt_items4 = st.text_area(
         "Input list (tab-separated: NO, FILE_PATH, FILE_NAME, ...):", 
@@ -237,9 +299,14 @@ with tab4:
     btn_merge = st.button("Merge sources")
 
     if btn_merge:
-        if not SVN_ROOT_PATH:
+        st.info("source_type: " + SOURCE_TYPE4)
+        source_configs = get_configs_by_source_type(SOURCE_TYPE4)
+        FULL_ITEM_ROOT_PATH4 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH4}'
+        FULL_DAILY_FOLDER_PATH4 = f"{FULL_ITEM_ROOT_PATH4}/{DAILY_FOLDER_STR4}" if DAILY_FOLDER_STR4 else None
+
+        if not source_configs.SVN_ROOT_PATH:
             st.warning("Please set SVN_ROOT_PATH in config")
-        elif not FULL_DAILY_FOLDER_PATH4:
+        elif not DAILY_FOLDER_STR4:
             st.warning("Please input daily folder name.")
         elif not txt_items4.strip():
             st.warning("Please input item list.")
@@ -270,7 +337,7 @@ with tab4:
                 if not FULL_DAILY_FOLDER_PATH4:
                     st.warning("Folder path not resolved")
                 else:
-                    daily_files = file_utils.get_target_files(FULL_DAILY_FOLDER_PATH4)
+                    daily_files = file_utils.get_target_files(FULL_DAILY_FOLDER_PATH4, source_configs.SUFFIXES)
                     if not daily_files:
                         st.warning("?No files found in the target folder. Did you create items?")
                     else:
@@ -303,7 +370,7 @@ with tab4:
                                         st.error(f"IGNORE MERGE SOURCE FOR: {change_path_file}")
                                     else:
                                         original_path_file = str(Path(change_path_file).parent / file_name)
-                                        dest_file_path = (f"{SVN_ROOT_PATH}{file_path + file_name}").replace('/','\\')
+                                        dest_file_path = (f"{source_configs.SVN_ROOT_PATH}{file_path + file_name}").replace('/','\\')
                                         st.write(f"Original file: {original_path_file}")
                                         st.write(f"Change file: {change_path_file}")
                                         st.write(f"Destination file: {dest_file_path}")
@@ -320,55 +387,6 @@ with tab4:
                         
                         st.success(f"Total merged files: {count}")
 
-# === DELETE UNUSED FILES ===
-with tab3:
-    ITEM_SUB_FOLDER_PATH5 = st.text_input(
-        "ITEM_SUB_FOLDER_PATH", 
-        value=ITEM_SUB_FOLDER_PATH2, 
-        placeholder='Example: Select/Insert/Update', 
-        key="item_root_path_tab5"
-    )
-
-    DAILY_FOLDER_STR5 = st.text_input(
-        "Daily folder", 
-        value=DAILY_FOLDER_STR2, 
-        placeholder='Example: 2025_07_30', 
-        key="daily_folder_tab5"
-    )
-
-    FULL_ITEM_ROOT_PATH5 = f'{ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH5}'
-    FULL_DAILY_FOLDER_PATH5 = f"{FULL_ITEM_ROOT_PATH5}/{DAILY_FOLDER_STR5}" if DAILY_FOLDER_STR5 else None
-
-    txt_file_suffixes = st.text_input(
-        "File suffixes:", 
-        value=".bak, evidence.xlsx", 
-        placeholder='Example: .bak, _v1.xlsx, ...',
-        key="file_suffixes_tab5"
-    )
-
-    del_unused_btn = st.button("Delete unused files", key="del_unused_btn")
-    unused_files = []
-    if del_unused_btn:
-        if not FULL_DAILY_FOLDER_PATH5:
-            st.warning("Please input daily folder name.")
-        elif not txt_file_suffixes.strip():
-            st.warning("Please input file suffix list.")
-        else:
-            file_suffixes = set(suffix.strip() for suffix in txt_file_suffixes.split(',') if suffix.strip())
-            if file_suffixes:
-                st.write(f"File suffixes: {file_suffixes}")
-                unused_files = file_utils.get_files_by_suffixes(FULL_DAILY_FOLDER_PATH5, file_suffixes)
-                if not unused_files:
-                    st.warning("No unused files found with the specified suffixes.")
-                else:
-                    st.write(unused_files)
-                    st.write(f"Total files found: {len(unused_files)}")
-                    errors = file_utils.del_files_by_paths(unused_files)
-                    if errors:
-                        st.error("Errors occurred while deleting files:")
-                        st.code("\n".join(errors))
-                    else:
-                        st.success("All unused files deleted successfully!")
 
 with tab5:
 
@@ -407,6 +425,8 @@ with tab5:
 
 with tab6:
     # Input field for pasted code
+    source_type = st.radio("Source Type", ('Java', 'C'), horizontal=True, key="source_type_tab6")
+
     code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
 
     txt_tables =st.text_input("Tables (comma-separated)")
@@ -420,20 +440,25 @@ with tab6:
             extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
             handler.show_data_type(code_input, extra_tables, True)
         pass
+
+    is_export_excel = col2.checkbox("Export evidence excel", value=False, key="export_excel_tab6")
     if col2.button("Export full Code"):
         if not code_input.strip():
             st.warning("Please input code first.")
         else:
             try:
                 evidence_excel_path = Path(RESOURCE_ROOT_PATH) / OUTPUT_EVIDENCE_EXCEL_NAME
-                shutil.copy(FULL_EVIDENCE_INPUT_PATH, evidence_excel_path)
+                app = None
+                if is_export_excel:
+                    shutil.copy(FULL_EVIDENCE_INPUT_PATH, evidence_excel_path)
+                    app = xw.App(visible=False)
                 extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
-                app = xw.App(visible=False)
-                output_code = handler.process_and_replace_lines(app, code_input, evidence_excel_path, extra_tables)
+                output_code = handler.process_and_replace_lines(app, code_input, evidence_excel_path, source_type, extra_tables)
                 st.markdown("### Processed Code with Replacements")
-                st.warning(f"Exported evidence to: {evidence_excel_path}")
+                if is_export_excel:
+                    st.warning(f"Exported evidence to: {evidence_excel_path}")
                 st.code(output_code)
             finally:
-                if 'app' in locals():
+                if 'app' in locals() and app:
                     app.quit()
                     del app

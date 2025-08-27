@@ -21,3 +21,10 @@ def convert_and_upper_str_to_list(input_text: str, sp=",") -> List[str]:
     
     result = input_text.split(sp)
     return [item.strip().upper() for item in result]
+
+
+def get_index_from_list(options: List[str], selected_option: str) -> int:
+    try:
+        return options.index(selected_option)
+    except ValueError:
+        return 0

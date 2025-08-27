@@ -1,14 +1,19 @@
 import json
 import re
-from config import RULES_ROOT_PATH
+from config import RULES_ROOT_PATH, C_RULES_ROOT_PATH
 from pathlib import Path
 from logic import text_processing
 import streamlit as st
 
 @st.cache_data()
-def load_all_rules():
+def load_all_rules(source_type: str):
     rules = []
-    rules_path = Path(RULES_ROOT_PATH)
+    if source_type.lower() == 'c':
+        rules_path = Path(C_RULES_ROOT_PATH)
+    elif source_type.lower() == 'java':
+        rules_path = Path(RULES_ROOT_PATH)
+    else:
+        raise ValueError(f"value source_type: {source_type}, source_type must be either 'java' or 'c'")
 
     for json_file in rules_path.glob("*.json"):
         with open(json_file, "r", encoding="utf-8") as f:
@@ -73,8 +78,8 @@ def get_type_mapping(data_type: str) -> str:
     }
     return type_mapping.get(data_type.lower(), data_type)
 
-def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_mapping):
-    data =  detect_rules (code_input, load_all_rules())
+def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_mapping, source_type: str):
+    data =  detect_rules (code_input, load_all_rules(source_type))
     matched_rules = data[0]
     
     st.markdown("### Check rules")
@@ -91,6 +96,7 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_
         if output_mul_mapping:
             for mapping in output_mul_mapping:
                 st.warning(mapping)
+
     if output_rule2_mapping:
         st.markdown("##### Rule 2:")
         for data_by_line in output_rule2_mapping:
@@ -100,11 +106,6 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_
                     st.markdown(
                         f"**{data_by_col[0]}**: **`{data_type}`** (table: {table_name}) ---> **{get_type_mapping(data_type)}**"
                     )
-
-
-    # st.write(data[0])
-    # st.write(f'final query: {data[1]}')
-    # st.write(f'alias: {data[2]}')
 
     old_rule = None
     for rule in matched_rules:
