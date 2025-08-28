@@ -59,13 +59,13 @@ def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[st
                     notFound.append(word_upper)
     return (found, notFound)
 
-def replace_by_mapping(query: str, mapping: dict, new_col_name_to_table_and_data_type_dict: dict[str, Tuple]) -> Tuple[str, List[str]]:
+def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict, new_col_name_to_table_and_data_type_dict: dict[str, Tuple]) -> Tuple[List[str], List[str]]:
     output_lines = []
     output_mul_mapping = []
     output_rule2_mapping = []
 
     num_block_code_flag = 0
-    for line in query.splitlines():
+    for idx, line in enumerate(lines):
         table_and_data_types = []
         col_data_type_set = set()
         original_line = line.strip()
@@ -107,9 +107,9 @@ def replace_by_mapping(query: str, mapping: dict, new_col_name_to_table_and_data
         # Reattach comment
         final_line = f"{raw_line}//{comment_part}" if comment_part else raw_line
         if len(table_and_data_types) > 0 and has_sql_condition(raw_line):
-            output_rule2_mapping.append((final_line, table_and_data_types))
+            output_rule2_mapping.append(((line_indexes[idx], final_line), table_and_data_types))
         output_lines.append(final_line)
-    return "\n".join(output_lines), output_mul_mapping, output_rule2_mapping
+    return output_lines, output_mul_mapping, output_rule2_mapping
 
 def extract_sql_fragments(text: str) -> str:
     """

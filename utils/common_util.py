@@ -28,3 +28,24 @@ def get_index_from_list(options: List[str], selected_option: str) -> int:
         return options.index(selected_option)
     except ValueError:
         return 0
+
+def parse_int(value: str, default: int = -1) -> int:
+    """
+    Safely parse a string into an integer.
+    Returns `default` if parsing fails.
+    """
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+def get_files_by_no_and_name(daily_files: list[str], numb: int, file_name: str) -> list[str]:
+    name_only = Path(file_name).stem
+    target = f"No.{numb}"
+    result = []
+
+    for f in daily_files:
+        p = Path(f)
+        if target in p.parts and name_only in p.stem:
+            result.append(str(f)) 
+    return result

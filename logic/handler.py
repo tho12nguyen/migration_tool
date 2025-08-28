@@ -1,7 +1,7 @@
 
 from pathlib import Path
 import streamlit as st
-from typing import List, Set
+from typing import List, Tuple
 from config import OUTPUT_EVIDENCE_EXCEL_NAME
 from logic.mapping import build_full_mapping, build_mappings, get_full_schema_table_and_column_names_from_sheets
 from logic.text_processing import extract_full_keys, replace_by_mapping
@@ -38,7 +38,7 @@ def get_encode_file(file_path: str | Path):
         except Exception:
             encoding = "utf-8"
 
-    return raw, encoding
+    return encoding
 
 @st.cache_data()
 def load_all_sheets() -> Dict[str, pd.DataFrame]:
@@ -61,26 +61,50 @@ def get_full_type_df() -> pd.DataFrame:
     return full_type_df
 
 
-def replace_lines_in_file(app: xw.App, file_path: str, start_line: int, end_line: int, encoding: str, source_type: str):
+def replace_lines_in_file(
+    app: xw.App, 
+    file_path: str, 
+    codeBlockLines: List[Tuple[int, int]], 
+    encoding: str, 
+    source_type: str, 
+    extra_tables: List[str] = []
+):
+    # Step 1: Read all lines
     with open(file_path, 'r', encoding=encoding) as f:
         lines = f.readlines()
-
-    before = lines[:start_line - 1]
-    target = lines[start_line - 1:end_line]
-    after = lines[end_line:]
-
     evidence_excel_path = str(Path(file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
 
-    replaced_block = process_and_replace_lines(app, target, evidence_excel_path, source_type)
-    if replaced_block:
-        st.code(replaced_block)
-        result_lines = before + [replaced_block + '\n'] + after
-        
-        with open(file_path, 'w', encoding=encoding) as f:
-            f.writelines(result_lines)
+    if not codeBlockLines:
+        return
 
-def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path: str,  source_type: str, extra_tables: List[str]=[]) -> str:
-    block, unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables)
+    # Step 1: collect all line indices to replace (in order)
+    sorted_blocks = sorted(codeBlockLines, key=lambda x: x[0])
+    lines_to_replace_idx = []
+    for start, end in sorted_blocks:
+        lines_to_replace_idx.extend(range(start - 1, end))  # 0-based indices
+
+    # Step 2: get all lines to replace in order
+    target_lines = [lines[i] for i in lines_to_replace_idx]
+
+    # Step 3: process the merged block
+    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, extra_tables)
+    if replaced_lines:
+        output_code = ''
+        for idx, line in enumerate(replaced_lines):
+            output_code += f"Line {lines_to_replace_idx[idx] + 1}: {line if line.endswith('\n') else line + '\n'}"
+        st.code(output_code)
+
+        # Replace the lines in the original list
+        for i in range(len(lines_to_replace_idx)):
+            idx = lines_to_replace_idx[i]
+            lines[idx] = replaced_lines[i]
+
+        # Write back to file
+        with open(file_path, 'w', encoding=encoding) as f:
+            f.writelines(lines)
+
+def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, extra_tables: List[str]=[]) -> List[str]:
+    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables)
 
     # Export used keys to Excel
     if app:
@@ -93,13 +117,13 @@ def process_and_replace_lines(app: xw.App,lines: List[str], evidence_excel_path:
     else:
         st.warning("Skipping evidence data export.")
     
-    new_code, output_mul_mapping, output_rule2_mapping = replace_by_mapping(block, mapping, new_col_name_to_table_and_data_type_dict)
+    new_lines, output_mul_mapping, output_rule2_mapping = replace_by_mapping(lines, line_indexes, mapping, new_col_name_to_table_and_data_type_dict)
 
-    detect_rules.check_final_rules(block, unused_keys, output_mul_mapping, output_rule2_mapping, source_type)
+    detect_rules.check_final_rules(new_lines, unused_keys, output_mul_mapping, output_rule2_mapping, source_type)
 
-    return new_code
+    return new_lines
 
-def show_data_type(lines, extra_tables, only_show=False):
+def show_data_type(lines: List[str], extra_tables, only_show=False):
     valid_columns = extract_column_names_from_sheet()
     sheets = load_all_sheets()
     schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
@@ -144,4 +168,4 @@ def show_data_type(lines, extra_tables, only_show=False):
         filtered_df['new_table_name'] = filtered_df['table_name'].apply(lambda x: mapping[x] if x in mapping else x)
         show_df = filtered_df[["table_name", "table_type", 'column_name', "new_col_name", "data_type", "is_nullable", "new_table_name"]]
         st.dataframe(show_df)
-    return block,unused_keys,filter_keys,mapping, new_col_name_to_table_and_data_type_dict
+    return unused_keys,filter_keys,mapping, new_col_name_to_table_and_data_type_dict

@@ -1,5 +1,6 @@
 import json
 import re
+from typing import List
 from config import RULES_ROOT_PATH, C_RULES_ROOT_PATH
 from pathlib import Path
 from logic import text_processing
@@ -30,7 +31,8 @@ def load_all_rules(source_type: str):
     rules.sort( key= lambda r: r.get('rule_no', 0))
     return rules
 
-def detect_rules(raw_query, rules):
+def detect_rules(lines: List[str], rules):
+    raw_query = ''.join(lines)
     querySQL = text_processing.extract_sql_fragments(raw_query)
     query_text = text_processing.extract_query_text(querySQL)
     aliasSet = text_processing.find_aliases(query_text)
@@ -78,8 +80,8 @@ def get_type_mapping(data_type: str) -> str:
     }
     return type_mapping.get(data_type.lower(), data_type)
 
-def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_mapping, source_type: str):
-    data =  detect_rules (code_input, load_all_rules(source_type))
+def check_final_rules(lines: List[str], unused_keys, output_mul_mapping, output_rule2_mapping, source_type: str):
+    data =  detect_rules (lines, load_all_rules(source_type))
     matched_rules = data[0]
     
     st.markdown("### Check rules")
@@ -100,12 +102,30 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_
     if output_rule2_mapping:
         st.markdown("##### Rule 2:")
         for data_by_line in output_rule2_mapping:
-            st.warning(data_by_line[0])
+            (line_index, data_line) = data_by_line[0]
+            # st.warning(f"Line {line_index + 1}: {data_line}")
+            # for data_by_col in data_by_line[1]:
+            #     for (table_name, data_type) in data_by_col[1]:
+            #         st.markdown(
+            #             f"**{data_by_col[0]}**: **`{data_type}`** (table: {table_name})  |  **{get_type_mapping(data_type)}**"
+            #         )
+
+            item_html = f"""<div style="padding:6px; margin:4px 0; border-radius:6px;background:#f8f9fa; border-left:4px solid #EAB308;">
+                    <span style="color:#EAB308; font-weight:bold;">Line {line_index + 1}:</span>
+                    <code style="color:#d6336c;">{data_line.strip()}</code>
+            """
             for data_by_col in data_by_line[1]:
                 for (table_name, data_type) in data_by_col[1]:
-                    st.markdown(
-                        f"**{data_by_col[0]}**: **`{data_type}`** (table: {table_name})  |  **{get_type_mapping(data_type)}**"
-                    )
+                    item_html += f"""<div style="padding-left:20px; margin:2px 5px;">
+                        <b>{data_by_col[0]}</b> -> <code>{data_type}</code>  
+                            (table: {table_name}) | <b>{get_type_mapping(data_type)}</b>
+                        </div>
+                        """
+            item_html += "</div>"
+            st.markdown(item_html, unsafe_allow_html=True)
+
+
+
 
     old_rule = None
     for rule in matched_rules:

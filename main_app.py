@@ -160,14 +160,33 @@ with tab2:
             for idx, raw_line in enumerate(raw_lines, start=1):
                 line = raw_line.strip().replace('\t', ',')
                 parts = re.split(r'[,]+', line)
-                if len(parts) != 5:
+                if len(parts) < 5:
                     errors.append(f"Line {idx} invalid: {raw_line}")
                     continue
                 try:
                     item_no = parts[0]
-                    start_line = int(parts[3])
-                    end_line = int(parts[4])
-                    item_data.append((item_no, start_line, end_line))
+                    file_name = parts[2]
+                    codeBlockLines = []
+                    # parsing line ranges
+                    i = 3
+                    while i + 1 < len(parts):
+                        start_line = common_util.parse_int(parts[i])
+                        end_line =common_util.parse_int(parts[i + 1])
+                        if start_line == -1 or end_line == -1:
+                            break
+                        if start_line > end_line:
+                            errors.append(f"Line {idx} has invalid, start_line {start_line} > end_line {end_line}: {raw_line}")
+                            break
+
+                        codeBlockLines.append((start_line, end_line))
+                        i += 2
+                    if not codeBlockLines:
+                        errors.append(f"Line {idx} has no valid line ranges: {raw_line}")
+                        continue
+                    extra_tables = []
+                    for table_name in parts[i:]:
+                        extra_tables.append(str(table_name))
+                    item_data.append((item_no, file_name, codeBlockLines, extra_tables))
                 except ValueError:
                     errors.append(f"Line {idx} has non-integer line numbers: {raw_line}")
 
@@ -183,33 +202,31 @@ with tab2:
                         st.info("Folder path: " + FULL_DAILY_FOLDER_PATH)
                         st.warning("?No files found in the target folder. Did you create items?")
                     else:
-                        no_to_path = {
-                            re.search(r'No\.(\d+)', f).group(1): f
-                            for f in daily_files if re.search(r'No\.(\d+)', f)
-                        }
 
                         item_data.sort(key=lambda x: int(x[0]))
                         try:
                             app = xw.App(visible=False)
-                            for item_no, start_line, end_line in item_data:
+                            for item_no, file_name, codeBlockLines, extra_tables in item_data:
                                 st.markdown(f"### Start process for No.{item_no}")
 
-                                selected_file = no_to_path.get(item_no)
-                                if not selected_file:
+                                selected_files = common_util.get_files_by_no_and_name(daily_files, item_no, file_name)
+                                if not selected_files:
                                     st.warning(f"File for No.{item_no} not found. Skipping.")
                                     continue
-
+                                if len(selected_files) > 1:
+                                    st.warning(f"Multiple files found for No.{item_no}, using the first one: {selected_files}")
+                                selected_file = selected_files[0]
                                 st.code(f"File: {selected_file}")
-                                try:
-                                    byte_data, encoding = handler.get_encode_file(selected_file)
+                                if True:
+                                    encoding = handler.get_encode_file(selected_file)
                                     if not encoding:
                                         st.error(f"Encoding could not be detected for {selected_file}")
                                         continue
 
-                                    handler.replace_lines_in_file(app, selected_file, start_line, end_line, encoding, SOURCE_TYPE2)
+                                    handler.replace_lines_in_file(app, selected_file,codeBlockLines, encoding, SOURCE_TYPE2, extra_tables)
                                     st.success(f"Finished No.{item_no}: Lines {start_line}-{end_line}, Encoding: {encoding}")
-                                except Exception as e:
-                                    st.error(f"Error processing No.{item_no}: {e}")
+                                # except Exception as e:
+                                #     st.error(f"Error processing No.{item_no}: {str(e)}")
                         finally:
                             if 'app' in locals():
                                 app.quit()
@@ -374,7 +391,7 @@ with tab4:
                                         st.write(f"Original file: {original_path_file}")
                                         st.write(f"Change file: {change_path_file}")
                                         st.write(f"Destination file: {dest_file_path}")
-                                        _, encoding = handler.get_encode_file(original_path_file)
+                                        encoding = handler.get_encode_file(original_path_file)
                                         if not encoding:
                                             st.error(f"{encoding}: Encoding could not be detected for {original_path_file}")
                                             continue
@@ -427,7 +444,7 @@ with tab6:
     # Input field for pasted code
     source_type = st.radio("Source Type", ('Java', 'C'), horizontal=True, key="source_type_tab6")
 
-    code_input = st.text_area("Paste your code here (Java / SQL / XML):", height=300, key="code_input_tab3")
+    code_input = st.text_area("Paste your code here (Java / SQL / XML/...):", height=300, key="code_input_tab3")
 
     txt_tables =st.text_input("Tables (comma-separated)")
 
@@ -438,7 +455,9 @@ with tab6:
             st.warning("Please input code first.")
         else:
             extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
-            handler.show_data_type(code_input, extra_tables, True)
+            code_by_line = code_input.splitlines()
+            lines = [line if line.startswith("\n") else f"{line}\n" for line in code_by_line]
+            handler.show_data_type(lines, extra_tables, True)
         pass
 
     is_export_excel = col2.checkbox("Export evidence excel", value=False, key="export_excel_tab6")
@@ -453,11 +472,15 @@ with tab6:
                     shutil.copy(FULL_EVIDENCE_INPUT_PATH, evidence_excel_path)
                     app = xw.App(visible=False)
                 extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
-                output_code = handler.process_and_replace_lines(app, code_input, evidence_excel_path, source_type, extra_tables)
+                code_by_line = code_input.splitlines()
+                lines = [line if line.startswith("\n") else f"{line}\n" for line in code_by_line]
+                line_indexes = list(range(0, len(lines)))
+                new_lines = handler.process_and_replace_lines(app, lines, line_indexes, evidence_excel_path, source_type, extra_tables)
                 st.markdown("### Processed Code with Replacements")
                 if is_export_excel:
                     st.warning(f"Exported evidence to: {evidence_excel_path}")
-                st.code(output_code)
+                final_code = "".join(new_lines)
+                st.code(final_code)
             finally:
                 if 'app' in locals() and app:
                     app.quit()
