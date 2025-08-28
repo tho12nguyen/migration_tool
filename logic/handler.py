@@ -14,23 +14,31 @@ import xlwings as xw
 from logic import detect_rules
 
 @st.cache_data()
-def get_encode_file(file_path):
-    encodings = ['euc_jp', 'cp932', 'shift_jis', 'utf-8', 'latin-1']
-    result_encodings = None
-    for enc in encodings:
+def get_encode_file(file_path: str | Path):
+    common_encodings = ['cp932', 'euc_jp', 'shift_jis',  'utf-8', 'latin-1']
+    file_path = Path(file_path)
+    # Read file once as bytes
+    raw = file_path.read_bytes()
+
+    # Try common encodings
+    encoding = None
+    for enc in common_encodings:
         try:
-            with open(file_path, 'r', encoding=enc, errors='ignore') as f:
-                f.readlines()
-                result_encodings = enc
-                break
-        except Exception:
+            raw.decode(enc)
+            encoding = enc
+            break
+        except UnicodeDecodeError:
             continue
 
-    with open(file_path, "rb") as f:
-        raw = f.read()
-        if not result_encodings:
-            result_encodings = chardet.detect(raw)["encoding"]
-    return raw, result_encodings
+    # Fallback to chardet if needed
+    if encoding is None:
+        encoding = chardet.detect(raw).get("encoding") or "utf-8"
+        try:
+            raw.decode(encoding, errors="replace")
+        except Exception:
+            encoding = "utf-8"
+
+    return raw, encoding
 
 @st.cache_data()
 def load_all_sheets() -> Dict[str, pd.DataFrame]:

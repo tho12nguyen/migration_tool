@@ -104,7 +104,7 @@ def check_final_rules(code_input, unused_keys, output_mul_mapping, output_rule2_
             for data_by_col in data_by_line[1]:
                 for (table_name, data_type) in data_by_col[1]:
                     st.markdown(
-                        f"**{data_by_col[0]}**: **`{data_type}`** (table: {table_name}) ---> **{get_type_mapping(data_type)}**"
+                        f"**{data_by_col[0]}**: **`{data_type}`** (table: {table_name})  |  **{get_type_mapping(data_type)}**"
                     )
 
     old_rule = None
