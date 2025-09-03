@@ -1,6 +1,6 @@
 import json
 import re
-from typing import List
+from typing import List, Tuple
 from config import RULES_ROOT_PATH, C_RULES_ROOT_PATH
 from pathlib import Path
 from logic import text_processing
@@ -129,9 +129,6 @@ def check_final_rules(lines: List[str], unused_keys, output_mul_mapping, output_
             item_html += "</div>"
             st.markdown(item_html, unsafe_allow_html=True)
 
-
-
-
     old_rule = None
     for rule in matched_rules:
         if old_rule != rule["rule_no"]:
@@ -139,3 +136,22 @@ def check_final_rules(lines: List[str], unused_keys, output_mul_mapping, output_
             old_rule = rule["rule_no"]
         st.warning(f"{rule['detect_value']} -> {rule['replace_value']}")
 
+def detect_and_apply_rules(query: str, rules: List[dict], active_rule_set: set) -> Tuple[str, List[dict]]:
+    """
+    Apply regex-based replacement rules to the input query.
+    """
+    matched_rules = []
+    for rule in rules:
+        rule_no = rule["rule_no"]
+        if active_rule_set and rule_no not in active_rule_set:
+            continue
+        pattern = rule["pattern_detect"]
+        replace = rule["replace_value"]
+        
+        if re.search(pattern, query, flags=re.IGNORECASE):
+            matched_rules.append(rule)
+            query = re.sub(pattern, replace, query, flags=re.IGNORECASE)
+            if rule_no == 20:
+                while re.search(pattern, query, flags=re.IGNORECASE):
+                    query = re.sub(pattern, replace, query, flags=re.IGNORECASE)    
+    return query, matched_rules

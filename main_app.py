@@ -6,6 +6,7 @@ import pandas as pd
 import re
 import os
 import shutil
+from logic import detect_rules
 from utils import common_util
 import xlwings as xw
 from utils import file_utils
@@ -489,5 +490,140 @@ with tab6:
                     del app
                 
 with tab7:
-    source_type = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index= 1,horizontal=True, key="source_type_tab7", disabled=True,     )
-    st.warning(source_type)
+    SOURCE_TYPE7 = st.radio("Source Type", SOURCE_TYPE_OPTIONS ,  index= 1,horizontal=True, key="source_type_tab7", disabled=True)
+    st.warning(SOURCE_TYPE7 + " is fixed")
+    ITEM_SUB_FOLDER_PATH = st.selectbox(
+        "Select sheet name",
+        options=SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS,
+        index=0, 
+        key="item_root_path_tab7"
+    )
+    
+    DAILY_FOLDER_STR = st.text_input(
+        "Daily folder", 
+        placeholder='Example: 2025_07_30', 
+        key="daily_folder_tab7",
+        value=common_util.get_current_date_str()
+    )
+
+    txt_items = st.text_area("Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE):", height=300, key="input_list_tab7")
+
+    btn_col1, = st.columns(1)
+    btn_init = btn_col1.button("Run", key="btn_init_tab7")
+
+    if btn_init:
+        if not DAILY_FOLDER_STR:
+            st.warning(" Please input daily folder name")
+        elif not txt_items.strip():
+            st.warning(" Please input item list")
+        else:
+            source_configs = get_configs_by_source_type(SOURCE_TYPE7)
+            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH}'
+            FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH}/{DAILY_FOLDER_STR}" if DAILY_FOLDER_STR else None
+
+            raw_lines = txt_items.strip().splitlines()
+            items = []
+            errors = []
+            for idx, line in enumerate(raw_lines, start=1):
+                parts = re.split(r'[\t]+', line.strip())
+                if len(parts) != 4:
+                    errors.append(f"Line {idx} is invalid: {line}")
+                    continue
+                items.append(parts)
+
+            if errors:
+                st.error("Some lines are invalid:")
+                st.code("\n".join(errors))
+            else:
+                item_map = {item_no: (src_label, full_file_name, start_line) for item_no, src_label, full_file_name, start_line in items}
+                created_items = []
+
+                for item_no in sorted(item_map.keys()):
+                    src_label, full_file_name, start_line = item_map.get(item_no)
+                    des_folder_name = f"{FULL_DAILY_FOLDER_PATH}/No.{item_no}"
+                    os.makedirs(des_folder_name, exist_ok=True)
+
+                    # Extract file info
+                    try:
+                        file_type = full_file_name.split('.')[-1]
+                        file_name = full_file_name.rsplit('.', 1)[0]
+
+                        src_path = source_configs.ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:]  # remove leading character
+                        des_path = f'{des_folder_name}/{full_file_name}'
+                        des_path_after = f'{des_folder_name}/{file_name}_after.{file_type}'
+                        des_excel_path = f'{des_folder_name}/{EXCEL_FILE_NAME}'
+                        des_html_path = f'{des_folder_name}/{HTML_FILE_NAME}'
+                        des_evidence_path = f'{des_folder_name}/{OUTPUT_EVIDENCE_EXCEL_NAME}'
+
+                        st.markdown(f"## Start process for No.{item_no}")
+                        # Copy template files
+                        if os.path.exists(des_path):
+                            st.warning(f"File already exists, skipping copy: {des_path}")
+                        else:
+                            shutil.copy(src_path, des_path)
+
+                        if os.path.exists(des_path_after):
+                            os.remove(des_path_after)
+                            st.warning(f"File already exists, removed old file: {des_path_after}")
+    
+                        shutil.copy(src_path, des_path_after)
+                        os.chmod(des_path_after, 0o666)
+                        # shutil.copy(TEMPLATE_EXCEL_PATH, des_excel_path)
+                        shutil.copy(TEMPLATE_HTML_PATH, des_html_path)
+                        # shutil.copy(FULL_EVIDENCE_INPUT_PATH, des_evidence_path)
+                        
+                        # Process it
+                        st.code(f"File: {des_path_after}")
+                        encoding = handler.get_encode_file(des_path_after)
+                        if not encoding:
+                            st.error(f"Encoding could not be detected for {des_path_after}")
+                            continue
+                        lines = None
+                        with open(des_path_after, 'r', encoding=encoding) as f:
+                            lines = f.readlines()
+                        if not lines:
+                            st.error(f"No lines read from {des_path_after}")
+                            continue
+                        
+                        line_index = common_util.parse_int(start_line)
+                        if line_index == -1 or line_index < 1 or line_index > len(lines):
+                            st.error(f"Invalid start line {start_line} for file with {len(lines)} lines.")
+                            continue
+                        query_line = lines[line_index - 1]
+                        if not query_line:
+                            st.error(f"No lines to process from line {start_line} onwards. value: {query_line}")
+                            continue
+                        
+                        new_lines, matched_rules = detect_rules.detect_and_apply_rules(
+                            query_line, 
+                           detect_rules.load_all_rules(SOURCE_TYPE7), 
+                            set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH, []))
+                        )
+
+                        st.markdown("### Check rules")
+                        if len(matched_rules) == 0 :
+                            st.success("No rules matched")
+                        old_rule = None
+                        for rule in matched_rules:
+                            if old_rule != rule["rule_no"]:
+                                st.markdown(f"##### Rule {rule['rule_no']}:")
+                                old_rule = rule["rule_no"]
+                            st.warning(f"{rule['detect_value']} -> {rule['replace_value']}")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("##### Original line")
+                            st.code(query_line)
+                        with col2:
+                            st.markdown("##### Processed line")
+                            if new_lines:
+                                st.code(new_lines)
+                        
+                        if query_line != new_lines:
+                            lines[line_index - 1] = new_lines
+                            with open(des_path_after, 'w', encoding=encoding) as f:
+                                f.writelines(lines)
+
+                        st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
+                    except Exception as e:
+                        st.error(f"Failed to create item No.{item_no}: {e}")
