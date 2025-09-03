@@ -7,7 +7,9 @@ from utils import common_util
 load_dotenv()
 
 
-SUB_ITEM_FOLDER_OPTIONS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+SUB_ITEM_FOLDER_OPTIONS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'MERGE']
+
+SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS = ['NEXTVAL', 'SQLCA', "EXEC_SQL", "DB2_CONNECT", "SQLINT", "SQL_H"]
 
 SHEET_CONFIG_MAP = {
     "schema": {"number_header_rows": 3, "filter_columns": ["D"], "num_cols": 8, "num_rows": 15},
@@ -53,6 +55,7 @@ class SouceConfig:
     ROOT_OUTPUT_PATH: str
     SVN_ROOT_PATH: str
     SUFFIXES: list
+    RULE_CONFIGS: dict[str, set]  # SHEET TYPE -> LIST RULE BY SHEET TYPE 
 
 def get_configs_by_source_type(source_type: str) -> SouceConfig:
     match source_type.lower():
@@ -62,7 +65,8 @@ def get_configs_by_source_type(source_type: str) -> SouceConfig:
                 ROOT_APP_PATH,
                 ROOT_OUTPUT_PATH,
                 SVN_ROOT_PATH,
-                 ['_after.sql', '_after.xml', '_after.java']
+                 ['_after.sql', '_after.xml', '_after.java'],
+                 {}
             )
         case 'c':
             return SouceConfig(
@@ -70,7 +74,20 @@ def get_configs_by_source_type(source_type: str) -> SouceConfig:
                 C_ROOT_APP_PATH,
                 C_ROOT_OUTPUT_PATH,
                 C_SVN_ROOT_PATH,
-                 ['_after.sqc', '_after.h']
+                 ['_after.sqc', '_after.h'],
+                 {
+                    "SELECT": [1,2,3,5,6,7,8,9,10,11,12,13,14,15,17],
+                    "UPDATE": [1,2, 4,5,6,7,8,9,10,12,13,15],
+                    "INSERT": [1,2,5,6,7,8,9,10,12,13,15],
+                    "DELETE": [1,2,5,6,7,8,9,10,12,13,15],
+                    "MERGE": [1,2, 4,5,6,7,8,9,10,12,13,15],
+                    'NEXTVAL': [3],
+                    "SQLCA": [16, 19, 26],
+                    "EXEC_SQL": [18, 20, 25],
+                    "DB2_CONNECT": [18],
+                    "SQLINT": [21],
+                    "SQL_H": [27],
+                 },
             )
         case _:
             raise ValueError(f"value source_type: {source_type}, source_type must be either 'java' or 'c'")

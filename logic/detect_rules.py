@@ -31,7 +31,7 @@ def load_all_rules(source_type: str):
     rules.sort( key= lambda r: r.get('rule_no', 0))
     return rules
 
-def detect_rules(lines: List[str], rules):
+def detect_rules(lines: List[str], rules, active_rule_set: set):
     raw_query = ''.join(lines)
     querySQL = text_processing.extract_sql_fragments(raw_query)
     query_text = text_processing.extract_query_text(querySQL)
@@ -40,6 +40,11 @@ def detect_rules(lines: List[str], rules):
     results = []
     for rule in rules:
         rule_no = rule["rule_no"]
+
+        # Skip rule_no not in the list
+        if active_rule_set and rule_no not in active_rule_set:
+            continue
+
         match rule_no:
             case 5:
                 pattern = re.compile(rule["pattern_detect"], re.IGNORECASE | re.MULTILINE)
@@ -80,8 +85,8 @@ def get_type_mapping(data_type: str) -> str:
     }
     return type_mapping.get(data_type.lower(), data_type)
 
-def check_final_rules(lines: List[str], unused_keys, output_mul_mapping, output_rule2_mapping, source_type: str):
-    data =  detect_rules (lines, load_all_rules(source_type))
+def check_final_rules(lines: List[str], unused_keys, output_mul_mapping, output_rule2_mapping, source_type: str, active_rule_set: set):
+    data =  detect_rules (lines, load_all_rules(source_type), active_rule_set)
     matched_rules = data[0]
     
     st.markdown("### Check rules")

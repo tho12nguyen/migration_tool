@@ -67,6 +67,7 @@ def replace_lines_in_file(
     codeBlockLines: List[Tuple[int, int]], 
     encoding: str, 
     source_type: str, 
+    active_rule_set: set,
     extra_tables: List[str] = []
 ):
     # Step 1: Read all lines
@@ -87,7 +88,7 @@ def replace_lines_in_file(
     target_lines = [lines[i] for i in lines_to_replace_idx]
 
     # Step 3: process the merged block
-    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, extra_tables)
+    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, active_rule_set, extra_tables)
     if replaced_lines:
         output_code = ''
         for idx, line in enumerate(replaced_lines):
@@ -103,7 +104,7 @@ def replace_lines_in_file(
         with open(file_path, 'w', encoding=encoding) as f:
             f.writelines(lines)
 
-def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, extra_tables: List[str]=[]) -> List[str]:
+def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, extra_tables: List[str]=[]) -> List[str]:
     unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables)
 
     # Export used keys to Excel
@@ -119,7 +120,7 @@ def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[i
     
     new_lines, output_mul_mapping, output_rule2_mapping = replace_by_mapping(lines, line_indexes, mapping, new_col_name_to_table_and_data_type_dict)
 
-    detect_rules.check_final_rules(new_lines, unused_keys, output_mul_mapping, output_rule2_mapping, source_type)
+    detect_rules.check_final_rules(new_lines, unused_keys, output_mul_mapping, output_rule2_mapping, source_type, active_rule_set)
 
     return new_lines
 

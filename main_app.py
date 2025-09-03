@@ -23,9 +23,10 @@ tab_titles = [
     "Merge Source Files",
     "Check rule 2 XO",
     "Manual Replace Tool",
+    "Tools for source C"
 ]
 
-tab1, tab2, tab3, tab4, tab5, tab6= st.tabs(tab_titles)
+tab1, tab2, tab3, tab4, tab5, tab6, tab7= st.tabs(tab_titles)
 
 with tab1:
     SOURCE_TYPE = st.radio("Source Type", SOURCE_TYPE_OPTIONS, horizontal=True, key="source_type_tab1")
@@ -155,7 +156,8 @@ with tab2:
             raw_lines = txt_items2.strip().splitlines()
             item_data = []
             errors = []
-
+            active_rule_set = set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH2, []))
+            st.warning(active_rule_set)
             # Parse and validate lines
             for idx, raw_line in enumerate(raw_lines, start=1):
                 line = raw_line.strip().replace('\t', ',')
@@ -223,7 +225,7 @@ with tab2:
                                         st.error(f"Encoding could not be detected for {selected_file}")
                                         continue
 
-                                    handler.replace_lines_in_file(app, selected_file,codeBlockLines, encoding, SOURCE_TYPE2, extra_tables)
+                                    handler.replace_lines_in_file(app, selected_file,codeBlockLines, encoding, SOURCE_TYPE2, active_rule_set, extra_tables)
                                     st.success(f"Finished No.{item_no}: Lines {start_line}-{end_line}, Encoding: {encoding}")
                                 # except Exception as e:
                                 #     st.error(f"Error processing No.{item_no}: {str(e)}")
@@ -485,3 +487,7 @@ with tab6:
                 if 'app' in locals() and app:
                     app.quit()
                     del app
+                
+with tab7:
+    source_type = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index= 1,horizontal=True, key="source_type_tab7", disabled=True,     )
+    st.warning(source_type)
