@@ -77,7 +77,7 @@ def extract_full_keys(text: str, valid_columns: set, encoding: str) -> Tuple[Lis
                     unused_keys.append(word_upper)
     return (used_keys, unused_keys)
 
-def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict, new_col_name_to_table_and_data_type_dict: dict[str, Tuple]) -> Tuple[List[str], List[str]]:
+def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict, new_col_name_to_table_and_data_type_dict: dict[str, Tuple], column_set: set) -> Tuple[List[str], List[str]]:
     output_lines = []
     output_mul_mapping = []
     output_rule2_mapping = []
@@ -114,17 +114,25 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
         for word in extract_japanese_alphanum(code_part):
             if insert_flag and word.upper() == 'VALUES':
                 insert_flag = False
-            if pre_word.upper() == 'INSERT' and word.upper() == 'INTO':
+            if pre_word == 'INSERT' and word.upper() == 'INTO':
                 insert_flag = True
-            pre_word = word
+            
+            if pre_word  != "INSERT" and word.upper() == "INSERT":
+                pre_word = word.upper()
             
             if word in mapping:
                 replacements = mapping[word]
                 if len(replacements) > 0:
                     new_word = list(replacements)[0]
-                    if new_word in new_col_name_to_table_and_data_type_dict and new_word not in col_data_type_set:
-                        table_and_data_types.append((new_word, new_col_name_to_table_and_data_type_dict[new_word]))
-                        col_data_type_set.add(new_word)
+                    if new_word in new_col_name_to_table_and_data_type_dict:
+                        if new_word not in col_data_type_set:
+                            table_and_data_types.append((new_word, new_col_name_to_table_and_data_type_dict[new_word]))
+                            col_data_type_set.add(new_word)
+                    else:
+                        # Not found in dictionary, mark as Not Found
+                        if new_word not in col_data_type_set and new_word in column_set:
+                            table_and_data_types.append((new_word,[ ("Not found", "Not Found")]))
+                            col_data_type_set.add(new_word)
                 if len(replacements) > 1:
                     output_mul_mapping.append(f'{word} -> {list(replacements)}')
                 replacement = next(iter(replacements)) if len(replacements) == 1 else "\n".join(replacements)

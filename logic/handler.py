@@ -18,18 +18,20 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
     file_path = Path(file_path)
     raw = file_path.read_bytes()
     common_encodings = [
-        'cp932',           # Windows Japanese (Shift_JIS variant)
-        'shift_jis',       # Standard Shift_JIS
+        'cp932',           # Windows Japanese (Shift_JIS variant, most common on Windows)
+        'shift_jis',       # Standard legacy Shift_JIS
         'shift_jisx0213',  # Extended Shift_JIS (rare/modern Kanji)
         'euc_jp',          # EUC-JP (Unix/Linux Japanese files)
-        'iso2022_jp',      # JIS encoding (older systems / emails)
-        'iso2022_jp_1',    
-        'iso2022_jp_2',    
-        'iso2022_jp_3',    
-        'iso2022_jp_ext',  
-        'utf-8',           # Modern Unicode
-        'utf-8-sig',       # UTF-8 with BOM
-        'ascii'            # Strict ASCII
+        'iso2022_jp',      # JIS encoding (used in emails, older systems)
+        'iso2022_jp_1',    # Variant of ISO-2022-JP
+        'iso2022_jp_2',    # Another variant (supports extended characters)
+        'iso2022_jp_3',    # Rare, used for some Japanese emails
+        'iso2022_jp_ext',  # Extension for ISO-2022-JP
+        'utf-8',           # Modern Unicode, safe for Japanese
+        'utf-16',
+        'utf-32',        # Unicode variants, less common for Japanese text files
+        'utf-8-sig',       # UTF-8 with BOM, sometimes in Excel/Notepad
+        'ascii'            # Strict ASCII, safe if only basic chars
     ]
 
 
@@ -125,7 +127,7 @@ def replace_lines_in_file(
             f.writelines(lines)
 
 def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, extra_tables: List[str]=[], encoding='shift_jis') -> List[str]:
-    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables, encoding=encoding, only_show=False)
+    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict, column_set = show_data_type(lines, extra_tables, encoding=encoding, only_show=False)
 
     # Export used keys to Excel
     if app:
@@ -138,7 +140,7 @@ def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[i
     else:
         st.warning("Skipping evidence data export.")
     
-    new_lines, output_mul_mapping, output_rule2_mapping = replace_by_mapping(lines, line_indexes, mapping, new_col_name_to_table_and_data_type_dict)
+    new_lines, output_mul_mapping, output_rule2_mapping = replace_by_mapping(lines, line_indexes, mapping, new_col_name_to_table_and_data_type_dict, column_set)
 
     detect_rules.detect_and_apply_rules(new_lines,  source_type, active_rule_set, unused_keys, output_mul_mapping, output_rule2_mapping)
 
@@ -164,7 +166,7 @@ def show_data_type(lines: List[str], extra_tables, only_show=False, encoding='sh
     full_type_df = get_full_type_df()
     filtered_df  = full_type_df[full_type_df['table_name'].isin(filter_keys) & full_type_df['column_name'].isin(filter_keys)]
 
-    mapping = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
+    mapping, column_set = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)
 
     new_col_name_to_table_and_data_type_dict : dict[str, list]= {}
     for _, row in filtered_df.iterrows():
@@ -189,4 +191,4 @@ def show_data_type(lines: List[str], extra_tables, only_show=False, encoding='sh
         filtered_df['new_table_name'] = filtered_df['table_name'].apply(lambda x: mapping[x] if x in mapping else x)
         show_df = filtered_df[["table_name", "table_type", 'column_name', "new_col_name", "data_type", "is_nullable", "new_table_name"]]
         st.dataframe(show_df)
-    return unused_keys,filter_keys,mapping, new_col_name_to_table_and_data_type_dict
+    return unused_keys,filter_keys,mapping, new_col_name_to_table_and_data_type_dict, column_set
