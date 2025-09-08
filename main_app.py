@@ -159,7 +159,6 @@ with tab2:
             item_data = []
             errors = []
             active_rule_set = set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH2, []))
-            st.warning(active_rule_set)
             # Parse and validate lines
             for idx, raw_line in enumerate(raw_lines, start=1):
                 line = raw_line.strip().replace('\t', ',')
@@ -222,7 +221,7 @@ with tab2:
                                 selected_file = selected_files[0]
                                 st.code(f"File: {selected_file}")
                                 if True:
-                                    encoding = handler.get_encode_file(selected_file)
+                                    encoding = handler.get_encoded_file(selected_file)
                                     if not encoding:
                                         st.error(f"Encoding could not be detected for {selected_file}")
                                         continue
@@ -395,7 +394,7 @@ with tab4:
                                         st.write(f"Original file: {original_path_file}")
                                         st.write(f"Change file: {change_path_file}")
                                         st.write(f"Destination file: {dest_file_path}")
-                                        encoding = handler.get_encode_file(original_path_file)
+                                        encoding = handler.get_encoded_file(original_path_file)
                                         if not encoding:
                                             st.error(f"{encoding}: Encoding could not be detected for {original_path_file}")
                                             continue
@@ -575,7 +574,7 @@ with tab7:
                         
                         # Process it
                         st.code(f"File: {des_path_after}")
-                        encoding = handler.get_encode_file(des_path_after)
+                        encoding = handler.get_encoded_file(des_path_after)
                         if not encoding:
                             st.error(f"Encoding could not be detected for {des_path_after}")
                             continue

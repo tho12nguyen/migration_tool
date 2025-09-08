@@ -61,7 +61,7 @@ def has_sql_condition(sql_line: str) -> bool:
     pattern = "|".join(condition_patterns)
     return re.search(pattern, sql_line, re.IGNORECASE) is not None
 
-def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[str]]:
+def extract_full_keys(text: str, valid_columns: set, encoding: str) -> Tuple[List[str], List[str]]:
     used_keys = []
     unused_keys = []
     text = remove_comments(text)
@@ -73,7 +73,7 @@ def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[st
                 if  word_upper not in used_keys:
                     used_keys.append(word_upper)
             else:
-                if len(word_upper.encode("utf-8")) != len(word_upper.encode("shift_jis")) and word_upper not in unused_keys:
+                if len(word_upper.encode("utf-8")) != len(word_upper.encode(encoding)) and word_upper not in unused_keys:
                     unused_keys.append(word_upper)
     return (used_keys, unused_keys)
 
@@ -115,7 +115,7 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
             pre_word = word
             if insert_flag and word.upper() == 'VALUES':
                 insert_flag = False
-            if pre_word.upper() == 'INSERT' and word.upper() != 'INTO':
+            if pre_word.upper() == 'INSERT' and word.upper() == 'INTO':
                 insert_flag = True
             
             if word in mapping:

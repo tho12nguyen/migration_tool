@@ -14,31 +14,51 @@ import xlwings as xw
 from rules import detect_rules
 
 @st.cache_data()
-def get_encode_file(file_path: str | Path):
-    common_encodings = ['cp932', 'euc_jp', 'shift_jis',  'utf-8', 'latin-1']
+def get_encoded_file(file_path: str | Path, return_content: bool = False):
     file_path = Path(file_path)
-    # Read file once as bytes
     raw = file_path.read_bytes()
+    common_encodings = [
+        'cp932',           # Windows Japanese (Shift_JIS variant)
+        'shift_jis',       # Standard Shift_JIS
+        'shift_jisx0213',  # Extended Shift_JIS (rare/modern Kanji)
+        'euc_jp',          # EUC-JP (Unix/Linux Japanese files)
+        'iso2022_jp',      # JIS encoding (older systems / emails)
+        'iso2022_jp_1',    
+        'iso2022_jp_2',    
+        'iso2022_jp_3',    
+        'iso2022_jp_ext',  
+        'utf-8',           # Modern Unicode
+        'utf-8-sig',       # UTF-8 with BOM
+        'ascii'            # Strict ASCII
+    ]
 
-    # Try common encodings
+
     encoding = None
+    content = None
+
+    # Try common encodings first
     for enc in common_encodings:
         try:
-            raw.decode(enc)
+            decoded = raw.decode(enc)
             encoding = enc
+            content = decoded
             break
         except UnicodeDecodeError:
-            continue
-
-    # Fallback to chardet if needed
+            # st.warning(f"Failed to decode {file_path.name} with {enc}")
+            pass
+    
+    # Fallback to chardet if none worked
     if encoding is None:
-        encoding = chardet.detect(raw).get("encoding") or "utf-8"
+        st.warning(f"Failed to decode {file_path.name} with common encodings. Using chardet to detect encoding.")
+        detected = chardet.detect(raw)
+        encoding = detected.get("encoding") or "utf-8"
         try:
-            raw.decode(encoding, errors="replace")
+            content = raw.decode(encoding, errors="replace")
         except Exception:
             encoding = "utf-8"
+            content = raw.decode(encoding, errors="replace")
 
-    return encoding
+    return (encoding, content) if return_content else encoding
 
 @st.cache_data()
 def load_all_sheets() -> Dict[str, pd.DataFrame]:
@@ -71,7 +91,7 @@ def replace_lines_in_file(
     extra_tables: List[str] = []
 ):
     # Step 1: Read all lines
-    with open(file_path, 'r', encoding=encoding) as f:
+    with open(file_path, 'r', encoding=encoding, errors="replace") as f:
         lines = f.readlines()
     evidence_excel_path = str(Path(file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
 
@@ -88,7 +108,7 @@ def replace_lines_in_file(
     target_lines = [lines[i] for i in lines_to_replace_idx]
 
     # Step 3: process the merged block
-    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, active_rule_set, extra_tables)
+    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, active_rule_set, extra_tables, encoding=encoding)
     if replaced_lines:
         output_code = ''
         for idx, line in enumerate(replaced_lines):
@@ -101,11 +121,11 @@ def replace_lines_in_file(
             lines[idx] = replaced_lines[i]
 
         # Write back to file
-        with open(file_path, 'w', encoding=encoding) as f:
+        with open(file_path, 'w', encoding=encoding, errors="replace") as f:
             f.writelines(lines)
 
-def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, extra_tables: List[str]=[]) -> List[str]:
-    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables)
+def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, extra_tables: List[str]=[], encoding='shift_jis') -> List[str]:
+    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict = show_data_type(lines, extra_tables, encoding=encoding, only_show=False)
 
     # Export used keys to Excel
     if app:
@@ -124,13 +144,13 @@ def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[i
 
     return new_lines
 
-def show_data_type(lines: List[str], extra_tables, only_show=False):
+def show_data_type(lines: List[str], extra_tables, only_show=False, encoding='shift_jis') -> Tuple[List[str], set, dict, dict]:
     valid_columns = extract_column_names_from_sheet()
     sheets = load_all_sheets()
     schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
 
     block = ''.join(lines)
-    (used_keys, unused_keys) = extract_full_keys(block, valid_columns)
+    (used_keys, unused_keys) = extract_full_keys(block, valid_columns, encoding)
     if extra_tables:
         used_keys.extend(extra_tables)
     st.code(','.join(used_keys))
