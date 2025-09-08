@@ -11,7 +11,7 @@ import chardet
 import pandas as pd
 from config import FULL_EVIDENCE_INPUT_PATH
 import xlwings as xw
-from logic import detect_rules
+from rules import detect_rules
 
 @st.cache_data()
 def get_encode_file(file_path: str | Path):
@@ -92,7 +92,7 @@ def replace_lines_in_file(
     if replaced_lines:
         output_code = ''
         for idx, line in enumerate(replaced_lines):
-            output_code += f"Line {lines_to_replace_idx[idx] + 1}: {line if line.endswith('\n') else line + '\n'}"
+             output_code += f'Line {lines_to_replace_idx[idx] + 1}: {line if line.endswith("\n") else line + "\n"}'
         st.code(output_code)
 
         # Replace the lines in the original list
@@ -120,7 +120,7 @@ def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[i
     
     new_lines, output_mul_mapping, output_rule2_mapping = replace_by_mapping(lines, line_indexes, mapping, new_col_name_to_table_and_data_type_dict)
 
-    detect_rules.check_final_rules(new_lines, unused_keys, output_mul_mapping, output_rule2_mapping, source_type, active_rule_set)
+    detect_rules.detect_and_apply_rules(new_lines,  source_type, active_rule_set, unused_keys, output_mul_mapping, output_rule2_mapping)
 
     return new_lines
 

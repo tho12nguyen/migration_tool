@@ -6,7 +6,7 @@ import pandas as pd
 import re
 import os
 import shutil
-from logic import detect_rules
+from rules import detect_c_rules
 from utils import common_util
 import xlwings as xw
 from utils import file_utils
@@ -97,6 +97,7 @@ with tab1:
                         # Copy template files
                         shutil.copy(src_path, des_path)
                         shutil.copy(src_path, des_path_after)
+                        os.chmod(des_path_after, 0o666)
                         shutil.copy(TEMPLATE_EXCEL_PATH, des_excel_path)
                         shutil.copy(TEMPLATE_HTML_PATH, des_html_path)
                         shutil.copy(FULL_EVIDENCE_INPUT_PATH, des_evidence_path)
@@ -594,9 +595,9 @@ with tab7:
                             st.error(f"No lines to process from line {start_line} onwards. value: {query_line}")
                             continue
                         
-                        new_lines, matched_rules = detect_rules.detect_and_apply_rules(
+                        new_lines, matched_rules = detect_c_rules.detect_and_apply_rules(
                             query_line, 
-                           detect_rules.load_all_rules(SOURCE_TYPE7), 
+                            SOURCE_TYPE7,
                             set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH, []))
                         )
 

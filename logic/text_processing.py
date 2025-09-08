@@ -5,10 +5,27 @@ def extract_japanese_alphanum(text: str) -> List[str]:
     return re.findall(r'[\u3040-\u30ff\u4e00-\u9fff\w:]+', text, re.UNICODE)
 
 def remove_comments(text: str) -> str:
-    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
     text = re.sub(r'//.*', '', text)
-    text = re.sub(r'<!--.*?-->', '', text, flags=re.DOTALL)
-    return text
+    output_text = ''
+    num_block_code_flag = 0
+    for line in text.splitlines():
+        original_line = line.strip()
+        # Skip block comment lines
+        if (original_line.startswith("/*") or original_line.startswith("<!--")):
+            num_block_code_flag += 1
+
+        if num_block_code_flag > 0:
+            if (original_line.endswith("*/") or original_line.endswith("-->")):
+                num_block_code_flag -= 1
+            continue
+
+        if original_line.startswith("//"):
+            continue
+        if original_line.endswith('\n'):
+            output_text += line
+        else:
+            output_text += line + '\n'
+    return output_text
 
 def remove_system_out_print(text: str) -> str:
     # Match System.out.print / println / printf with multi-line support
@@ -38,26 +55,27 @@ def has_sql_condition(sql_line: str) -> bool:
         r"\bEXISTS\b",       # EXISTS
         r"\bANY\b",          # = ANY(...)
         r"\bALL\b",          # = ALL(...)
+        r"\bWHEN\b"          # CASE A.COLUMN WHEN THEN ... END
     ]
 
     pattern = "|".join(condition_patterns)
     return re.search(pattern, sql_line, re.IGNORECASE) is not None
 
 def extract_full_keys(text: str, valid_columns: set) -> Tuple[List[str], List[str]]:
-    found = []
-    notFound = []
+    used_keys = []
+    unused_keys = []
     text = remove_comments(text)
     text = remove_system_out_print(text)
     for line in text.splitlines():
         for word in extract_japanese_alphanum(line):
             word_upper = word.upper()
             if word_upper in valid_columns:
-                if  word_upper not in found:
-                    found.append(word_upper)
+                if  word_upper not in used_keys:
+                    used_keys.append(word_upper)
             else:
-                if len(word_upper.encode("utf-8")) != len(word_upper.encode("shift_jis")) and word_upper not in notFound:
-                    notFound.append(word_upper)
-    return (found, notFound)
+                if len(word_upper.encode("utf-8")) != len(word_upper.encode("shift_jis")) and word_upper not in unused_keys:
+                    unused_keys.append(word_upper)
+    return (used_keys, unused_keys)
 
 def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict, new_col_name_to_table_and_data_type_dict: dict[str, Tuple]) -> Tuple[List[str], List[str]]:
     output_lines = []
@@ -65,6 +83,8 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
     output_rule2_mapping = []
 
     num_block_code_flag = 0
+    pre_word = ''
+    insert_flag = False
     for idx, line in enumerate(lines):
         table_and_data_types = []
         col_data_type_set = set()
@@ -92,6 +112,12 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
         raw_line = code_part
         # Replace by mapping
         for word in extract_japanese_alphanum(code_part):
+            pre_word = word
+            if insert_flag and word.upper() == 'VALUES':
+                insert_flag = False
+            if pre_word.upper() == 'INSERT' and word.upper() != 'INTO':
+                insert_flag = True
+            
             if word in mapping:
                 replacements = mapping[word]
                 if len(replacements) > 0:
@@ -106,7 +132,7 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
                     raw_line = re.sub(rf'\b{re.escape(word)}\b', replacement, raw_line)
         # Reattach comment
         final_line = f"{raw_line}//{comment_part}" if comment_part else raw_line
-        if len(table_and_data_types) > 0 and has_sql_condition(raw_line):
+        if len(table_and_data_types) > 0 and (insert_flag or has_sql_condition(raw_line)):
             output_rule2_mapping.append(((line_indexes[idx], final_line), table_and_data_types))
         output_lines.append(final_line)
     return output_lines, output_mul_mapping, output_rule2_mapping
