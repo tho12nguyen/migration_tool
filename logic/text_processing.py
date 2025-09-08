@@ -112,11 +112,11 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
         raw_line = code_part
         # Replace by mapping
         for word in extract_japanese_alphanum(code_part):
-            pre_word = word
             if insert_flag and word.upper() == 'VALUES':
                 insert_flag = False
             if pre_word.upper() == 'INSERT' and word.upper() == 'INTO':
                 insert_flag = True
+            pre_word = word
             
             if word in mapping:
                 replacements = mapping[word]
