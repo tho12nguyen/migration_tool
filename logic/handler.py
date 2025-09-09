@@ -55,10 +55,10 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
         detected = chardet.detect(raw)
         encoding = detected.get("encoding") or "utf-8"
         try:
-            content = raw.decode(encoding, errors="replace")
+            content = raw.decode(encoding)
         except Exception:
             encoding = "utf-8"
-            content = raw.decode(encoding, errors="replace")
+            content = raw.decode(encoding)
 
     return (encoding, content) if return_content else encoding
 
@@ -93,7 +93,7 @@ def replace_lines_in_file(
     extra_tables: List[str] = []
 ):
     # Step 1: Read all lines
-    with open(file_path, 'r', encoding=encoding, errors="replace") as f:
+    with open(file_path, 'r', encoding=encoding) as f:
         lines = f.readlines()
     evidence_excel_path = str(Path(file_path).parent / OUTPUT_EVIDENCE_EXCEL_NAME)
 
@@ -123,7 +123,7 @@ def replace_lines_in_file(
             lines[idx] = replaced_lines[i]
 
         # Write back to file
-        with open(file_path, 'w', encoding=encoding, errors="replace") as f:
+        with open(file_path, 'w', encoding=encoding) as f:
             f.writelines(lines)
 
 def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, extra_tables: List[str]=[], encoding='shift_jis') -> List[str]:
