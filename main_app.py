@@ -49,9 +49,10 @@ with tab1:
 
     btn_col1, = st.columns(1)
     btn_init = btn_col1.button("Create daily items")
-
     if btn_init:
-        if not DAILY_FOLDER_STR:
+        if not ITEM_SUB_FOLDER_PATH:
+            st.warning(" Please select sheet name")
+        elif not DAILY_FOLDER_STR:
             st.warning(" Please input daily folder name")
         elif not txt_items.strip():
             st.warning(" Please input item list")
@@ -150,15 +151,15 @@ with tab2:
         elif not txt_items2.strip():
             st.warning("Please input item list.")
         else:
-            st.info("source_type: " + SOURCE_TYPE2)
-            source_configs = get_configs_by_source_type(SOURCE_TYPE)
+            st.info("SOURCE CODE: " + SOURCE_TYPE2.upper())
+            source_configs = get_configs_by_source_type(SOURCE_TYPE2)
             FULL_ITEM_ROOT_PATH2 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH2}'
             FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH2}/{DAILY_FOLDER_STR2}" if DAILY_FOLDER_STR2 else None
 
             raw_lines = txt_items2.strip().splitlines()
             item_data = []
             errors = []
-            active_rule_set = set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH2, []))
+            active_rule_set = set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH2.upper(), []))
             # Parse and validate lines
             for idx, raw_line in enumerate(raw_lines, start=1):
                 line = raw_line.strip().replace('\t', ',')

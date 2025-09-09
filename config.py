@@ -16,11 +16,16 @@ SHEET_CONFIG_MAP = {
     "table": {"number_header_rows": 3, "filter_columns": ["E"], "num_cols": 9, "num_rows": 700},
     "column": {"number_header_rows": 3, "filter_columns": ["E", "F"], "num_cols": 10, "num_rows": 11_000},
     "key": {"number_header_rows": 3, "filter_columns": [ "F"], "num_cols": 9, "num_rows": 100},
-    "type1": {"number_header_rows": 1, "filter_columns": ["A", "C"], "num_cols": 8, "num_rows": 1200},
-    "type2": {"number_header_rows": 1, "filter_columns": ["A", "C"], "num_cols": 8, "num_rows": 3500},
-    "type3": {"number_header_rows": 1, "filter_columns": ["A", "C"], "num_cols": 8, "num_rows": 300},
+    "type1.1": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 2500},
+    "type1.2": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 3500},
+    "type2.1": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 1000},
+    "type2.2": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 3500},
+    "type2.3": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 300},
+    "type3.1": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 500},
+    "type3.2": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 100},
+    "type3.3": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 100}
 }
-EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1', 'type2', 'type3']
+EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1.1' , 'type1.2',  'type2.1' , 'type2.2', 'type2.3', 'type3.1' , 'type3.2', 'type3.3']
 
 # COMMON CONFIG PATH
 OUTPUT_EVIDENCE_EXCEL_NAME = "evidence.xlsx"
@@ -85,6 +90,7 @@ def get_configs_by_source_type(source_type: str) -> SouceConfig:
                     "SQLCA": [16, 19, 26],
                     "EXEC_SQL": [18, 20, 25],
                     "DB2_CONNECT": [18],
+                    "No.20": [20],
                     "SQLINT": [21],
                     "SQL_H": [27],
                     "db2SQL": [28, 29, 30],
