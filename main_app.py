@@ -31,10 +31,17 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7= st.tabs(tab_titles)
 
 with tab1:
     SOURCE_TYPE = st.radio("Source Type", SOURCE_TYPE_OPTIONS, horizontal=True, key="source_type_tab1")
-    ITEM_SUB_FOLDER_PATH = st.selectbox(
-        "ITEM SUB_FOLDER PATH",
+    sub_excel_file_name_to_sheet_type_map = FILE_EXCEL_NAME_TO_SHEET_TYPE_MAP_BY_SOURCE_TYPE.get(SOURCE_TYPE, {})
+    selected_excel_file_name = st.selectbox(
+        "Select excel file name",
+        options=list(sub_excel_file_name_to_sheet_type_map.keys()),
+        index=None, 
+        key="excel_file_name_tab1"
+    )
+    selected_sheet_name = st.selectbox(
+        "Select sheet name",
         options=SUB_ITEM_FOLDER_OPTIONS,
-        index=0, 
+        index=None, 
         key="item_root_path_tab1"
     )
 
@@ -50,7 +57,9 @@ with tab1:
     btn_col1, = st.columns(1)
     btn_init = btn_col1.button("Create daily items")
     if btn_init:
-        if not ITEM_SUB_FOLDER_PATH:
+        if not selected_excel_file_name:
+            st.warning(" Please select excel file name")
+        elif not selected_sheet_name:
             st.warning(" Please select sheet name")
         elif not DAILY_FOLDER_STR:
             st.warning(" Please input daily folder name")
@@ -58,7 +67,7 @@ with tab1:
             st.warning(" Please input item list")
         else:
             source_configs = get_configs_by_source_type(SOURCE_TYPE)
-            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH}'
+            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_excel_file_name}/{selected_sheet_name}'
             FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH}/{DAILY_FOLDER_STR}" if DAILY_FOLDER_STR else None
 
             raw_lines = txt_items.strip().splitlines()
@@ -122,10 +131,22 @@ with tab1:
 with tab2:
     source_type_index = common_util.get_index_from_list(SOURCE_TYPE_OPTIONS, SOURCE_TYPE)
     SOURCE_TYPE2 = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index=source_type_index, horizontal=True, key="source_type_tab2")
-    ITEM_SUB_FOLDER_PATH2 = st.text_input(
-        "ITEM_SUB_FOLDER_PATH", 
-        value=ITEM_SUB_FOLDER_PATH, 
-        placeholder='Example: Select/Insert/Update', 
+    sub_excel_file_name_to_sheet_type_map = FILE_EXCEL_NAME_TO_SHEET_TYPE_MAP_BY_SOURCE_TYPE.get(SOURCE_TYPE2, {})
+    
+    default_value_file_name = selected_excel_file_name
+    if selected_excel_file_name == None:
+        default_value_file_name = ''
+    selected_excel_file_name2 = st.text_input(
+        "Select excel file name",
+        value=default_value_file_name, 
+        key="excel_file_name_tab2"
+    )
+    default_value_sheet_name = selected_sheet_name
+    if selected_sheet_name == None:
+        default_value_sheet_name = ''
+    selected_sheet_name2 = st.text_input(
+        "Select sheet name", 
+        value=default_value_sheet_name, 
         key="item_root_path_tab2"
     )
 
@@ -146,6 +167,8 @@ with tab2:
     btn_process = st.button("Process & Replace")
 
     if btn_process:
+        if sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name2, None) is None:
+            st.warning("Please select valid excel file name")
         if not DAILY_FOLDER_STR2:
             st.warning("Please input daily folder name.")
         elif not txt_items2.strip():
@@ -153,13 +176,14 @@ with tab2:
         else:
             st.info("SOURCE CODE: " + SOURCE_TYPE2.upper())
             source_configs = get_configs_by_source_type(SOURCE_TYPE2)
-            FULL_ITEM_ROOT_PATH2 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH2}'
+            active_rule_set = set(source_configs.RULE_CONFIGS.get(selected_sheet_name2.upper(), []))
+
+            FULL_ITEM_ROOT_PATH2 = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_excel_file_name2}/{selected_sheet_name2}'
             FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH2}/{DAILY_FOLDER_STR2}" if DAILY_FOLDER_STR2 else None
 
             raw_lines = txt_items2.strip().splitlines()
             item_data = []
             errors = []
-            active_rule_set = set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH2.upper(), []))
             # Parse and validate lines
             for idx, raw_line in enumerate(raw_lines, start=1):
                 line = raw_line.strip().replace('\t', ',')
@@ -226,8 +250,8 @@ with tab2:
                                     if not encoding:
                                         st.error(f"Encoding could not be detected for {selected_file}")
                                         continue
-
-                                    handler.replace_lines_in_file(app, selected_file,codeBlockLines, encoding, SOURCE_TYPE2, active_rule_set, extra_tables)
+                                    system_types: List[int] = sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name2, [])
+                                    handler.replace_lines_in_file(app, selected_file,codeBlockLines, encoding, SOURCE_TYPE2, active_rule_set, system_types, extra_tables)
                                     st.success(f"Finished No.{item_no}: Lines {start_line}-{end_line}, Encoding: {encoding}")
                                 # except Exception as e:
                                 #     st.error(f"Error processing No.{item_no}: {str(e)}")
@@ -241,14 +265,28 @@ with tab2:
 with tab3:
     source_type_index = common_util.get_index_from_list(SOURCE_TYPE_OPTIONS, SOURCE_TYPE)
     SOURCE_TYPE3 = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index=source_type_index, horizontal=True, key="source_type_tab3")
-    ITEM_SUB_FOLDER_PATH5 = st.text_input(
-        "ITEM_SUB_FOLDER_PATH", 
-        value=ITEM_SUB_FOLDER_PATH2, 
+    sub_excel_file_name_to_sheet_type_map = FILE_EXCEL_NAME_TO_SHEET_TYPE_MAP_BY_SOURCE_TYPE.get(SOURCE_TYPE3, {})
+    
+    default_value_file_name = selected_excel_file_name2
+    if selected_excel_file_name == None:
+        default_value_file_name = ''
+    selected_excel_file_name3 = st.text_input(
+        "Select excel file name",
+        value=default_value_file_name, 
+        key="excel_file_name_tab3"
+    )
+    default_value_sheet_name = selected_sheet_name2
+    if selected_sheet_name2 == None:
+        default_value_sheet_name = ''
+
+    selected_sheet_name3 = st.text_input(
+        "selected_sheet_name", 
+        value=default_value_sheet_name, 
         placeholder='Example: Select/Insert/Update', 
         key="item_root_path_tab5"
     )
 
-    DAILY_FOLDER_STR5 = st.text_input(
+    DAILY_FOLDER_STR3 = st.text_input(
         "Daily folder", 
         value=DAILY_FOLDER_STR2, 
         placeholder='Example: 2025_07_30', 
@@ -265,20 +303,22 @@ with tab3:
     del_unused_btn = st.button("Delete unused files", key="del_unused_btn")
     unused_files = []
     if del_unused_btn:
-        if not DAILY_FOLDER_STR5:
+        if sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name3, None) is None:
+            st.warning("Please select valid excel file name")
+        if not DAILY_FOLDER_STR3:
             st.warning("Please input daily folder name.")
         elif not txt_file_suffixes.strip():
             st.warning("Please input file suffix list.")
         else:
             st.info("source_type: " + SOURCE_TYPE3)
             source_configs = get_configs_by_source_type(SOURCE_TYPE3)
-            FULL_ITEM_ROOT_PATH5 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH5}'
-            FULL_DAILY_FOLDER_PATH5 = f"{FULL_ITEM_ROOT_PATH5}/{DAILY_FOLDER_STR5}" if DAILY_FOLDER_STR5 else None
+            FULL_ITEM_ROOT_PATH3 = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_excel_file_name3}/{selected_sheet_name3}'
+            FULL_DAILY_FOLDER_PATH3 = f"{FULL_ITEM_ROOT_PATH3}/{DAILY_FOLDER_STR3}" if DAILY_FOLDER_STR3 else None
 
             file_suffixes = set(suffix.strip() for suffix in txt_file_suffixes.split(',') if suffix.strip())
             if file_suffixes:
                 st.write(f"File suffixes: {file_suffixes}")
-                unused_files = file_utils.get_files_by_suffixes(FULL_DAILY_FOLDER_PATH5, file_suffixes)
+                unused_files = file_utils.get_files_by_suffixes(FULL_DAILY_FOLDER_PATH3, file_suffixes)
                 if not unused_files:
                     st.warning("No unused files found with the specified suffixes.")
                 else:
@@ -295,9 +335,23 @@ with tab3:
 with tab4:
     source_type_index = common_util.get_index_from_list(SOURCE_TYPE_OPTIONS, SOURCE_TYPE)
     SOURCE_TYPE4 = st.radio("Source Type", SOURCE_TYPE_OPTIONS, index=source_type_index, horizontal=True, key="source_type_tab4")
-    ITEM_SUB_FOLDER_PATH4 = st.text_input(
-        "ITEM_SUB_FOLDER_PATH", 
-        value=ITEM_SUB_FOLDER_PATH2, 
+    sub_excel_file_name_to_sheet_type_map = FILE_EXCEL_NAME_TO_SHEET_TYPE_MAP_BY_SOURCE_TYPE.get(SOURCE_TYPE4, {})
+    
+    default_value_file_name = selected_excel_file_name2
+    if selected_excel_file_name2 == None:
+        default_value_file_name = ''
+    selected_excel_file_name4 = st.text_input(
+        "Select excel file name",
+        value=default_value_file_name, 
+        key="excel_file_name_tab4"
+    )
+    default_value_sheet_name = selected_sheet_name2
+    if selected_sheet_name2 == None:
+        default_value_sheet_name = ''
+
+    selected_sheet_name4 = st.text_input(
+        "selected_sheet_name", 
+        value=default_value_sheet_name, 
         placeholder='Example: Select/Insert/Update', 
         key="item_root_path_tab4"
     )
@@ -322,16 +376,19 @@ with tab4:
     if btn_merge:
         st.info("source_type: " + SOURCE_TYPE4)
         source_configs = get_configs_by_source_type(SOURCE_TYPE4)
-        FULL_ITEM_ROOT_PATH4 = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH4}'
-        FULL_DAILY_FOLDER_PATH4 = f"{FULL_ITEM_ROOT_PATH4}/{DAILY_FOLDER_STR4}" if DAILY_FOLDER_STR4 else None
 
         if not source_configs.SVN_ROOT_PATH:
             st.warning("Please set SVN_ROOT_PATH in config")
+        elif sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name4, None) is None:
+            st.warning("Please select valid excel file name")
         elif not DAILY_FOLDER_STR4:
             st.warning("Please input daily folder name.")
         elif not txt_items4.strip():
             st.warning("Please input item list.")
         else:
+            FULL_ITEM_ROOT_PATH4 = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_excel_file_name4}/{selected_sheet_name4}'
+            FULL_DAILY_FOLDER_PATH4 = f"{FULL_ITEM_ROOT_PATH4}/{DAILY_FOLDER_STR4}" if DAILY_FOLDER_STR4 else None
+
             raw_lines = txt_items4.strip().splitlines()
             item_data = []
             errors = []
@@ -410,7 +467,6 @@ with tab4:
 
 
 with tab5:
-
     full_excel_data_file_path = st.text_input(
         "Excel data file path", 
         placeholder='Example: C:/path/to/data.xlsx',
@@ -447,25 +503,45 @@ with tab5:
 with tab6:
     # Input field for pasted code
     source_type = st.radio("Source Type", ('Java', 'C'), horizontal=True, key="source_type_tab6")
+    sub_excel_file_name_to_sheet_type_map = FILE_EXCEL_NAME_TO_SHEET_TYPE_MAP_BY_SOURCE_TYPE.get(source_type.lower(), {})
+    selected_excel_file_name = st.selectbox(
+        "Select excel file name",
+        options=list(sub_excel_file_name_to_sheet_type_map.keys()),
+        index=None, 
+        key="excel_file_name_tab6"
+    )
+    selected_sheet_name6 = st.selectbox(
+        "Select sheet name",
+        options=SUB_ITEM_FOLDER_OPTIONS,
+        index=None, 
+        key="item_root_path_tab6"
+    )
 
     code_input = st.text_area("Paste your code here (Java / SQL / XML/...):", height=300, key="code_input_tab3")
 
     txt_tables =st.text_input("Tables (comma-separated)")
 
     col1, col2, col3, col4 = st.columns(4)
+    source_configs = get_configs_by_source_type(source_type)
+    system_types: List[int] = sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name, [])
+
     # Button to trigger analysis
     if col1.button("Check data type"):
+        if sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name, None) is None:
+            st.warning("Please select valid excel file name")
         if not code_input.strip():
             st.warning("Please input code first.")
         else:
             extra_tables = common_util.convert_and_upper_str_to_list(txt_tables)
             code_by_line = code_input.splitlines()
             lines = [line if line.startswith("\n") else f"{line}\n" for line in code_by_line]
-            handler.show_data_type(lines, extra_tables, True)
+            handler.show_data_type(lines, system_types, extra_tables, True)
         pass
 
     is_export_excel = col2.checkbox("Export evidence excel", value=False, key="export_excel_tab6")
     if col2.button("Export full Code"):
+        if sub_excel_file_name_to_sheet_type_map.get(selected_excel_file_name, None) is None:
+            st.warning("Please select valid excel file name")
         if not code_input.strip():
             st.warning("Please input code first.")
         else:
@@ -479,7 +555,8 @@ with tab6:
                 code_by_line = code_input.splitlines()
                 lines = [line if line.startswith("\n") else f"{line}\n" for line in code_by_line]
                 line_indexes = list(range(0, len(lines)))
-                new_lines = handler.process_and_replace_lines(app, lines, line_indexes, evidence_excel_path, source_type, extra_tables)
+                active_rule_set = set(source_configs.RULE_CONFIGS.get(selected_sheet_name6.upper(), []))
+                new_lines = handler.process_and_replace_lines(app, lines, line_indexes, evidence_excel_path, source_type, active_rule_set,  system_types, extra_tables)
                 st.markdown("### Processed Code with Replacements")
                 if is_export_excel:
                     st.warning(f"Exported evidence to: {evidence_excel_path}")
@@ -492,8 +569,7 @@ with tab6:
                 
 with tab7:
     SOURCE_TYPE7 = st.radio("Source Type", SOURCE_TYPE_OPTIONS ,  index= 1,horizontal=True, key="source_type_tab7", disabled=True)
-    st.warning(SOURCE_TYPE7 + " is fixed")
-    ITEM_SUB_FOLDER_PATH = st.selectbox(
+    selected_sheet_name = st.selectbox(
         "Select sheet name",
         options=SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS,
         index=0, 
@@ -519,7 +595,7 @@ with tab7:
             st.warning(" Please input item list")
         else:
             source_configs = get_configs_by_source_type(SOURCE_TYPE7)
-            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{ITEM_SUB_FOLDER_PATH}'
+            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_sheet_name}'
             FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH}/{DAILY_FOLDER_STR}" if DAILY_FOLDER_STR else None
 
             raw_lines = txt_items.strip().splitlines()
@@ -598,7 +674,7 @@ with tab7:
                         new_lines, matched_rules = detect_c_rules.detect_and_apply_rules(
                             query_line, 
                             SOURCE_TYPE7,
-                            set(source_configs.RULE_CONFIGS.get(ITEM_SUB_FOLDER_PATH, []))
+                            set(source_configs.RULE_CONFIGS.get(selected_sheet_name, []))
                         )
 
                         st.markdown("### Check rules")

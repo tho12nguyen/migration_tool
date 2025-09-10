@@ -72,12 +72,13 @@ def extract_column_names_from_sheet() -> set:
     return get_full_schema_table_and_column_names_from_sheets(sheets)
 
 @st.cache_data()
-def get_full_type_df() -> pd.DataFrame:
+def get_full_type_df(system_types:List[int]) -> pd.DataFrame:
     full_type_df = pd.DataFrame()
     for name, df in load_all_sheets().items():
-        if name.startswith('type'):
-            # print(f"Sheet: {name}: size: {len(df)} example:#n{df.head(2)}")
-            full_type_df = pd.concat([full_type_df, df], ignore_index=True)
+        for system_type in system_types:
+            if name.startswith(f'type{system_type}'):
+                # print(f"Sheet: {name}: size: {len(df)} example:#n{df.head(2)}")
+                full_type_df = pd.concat([full_type_df, df], ignore_index=True)
     full_type_df['table_name'] = full_type_df['table_name'].str.upper()
     full_type_df['column_name'] = full_type_df['column_name'].str.upper()
     return full_type_df
@@ -90,6 +91,7 @@ def replace_lines_in_file(
     encoding: str, 
     source_type: str, 
     active_rule_set: set,
+    system_types: List[int],
     extra_tables: List[str] = []
 ):
     # Step 1: Read all lines
@@ -110,7 +112,7 @@ def replace_lines_in_file(
     target_lines = [lines[i] for i in lines_to_replace_idx]
 
     # Step 3: process the merged block
-    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, active_rule_set, extra_tables, encoding=encoding)
+    replaced_lines = process_and_replace_lines(app, target_lines, lines_to_replace_idx, evidence_excel_path, source_type, active_rule_set, system_types, extra_tables, encoding=encoding)
     if replaced_lines:
         output_code = ''
         for idx, line in enumerate(replaced_lines):
@@ -126,16 +128,16 @@ def replace_lines_in_file(
         with open(file_path, 'w', encoding=encoding) as f:
             f.writelines(lines)
 
-def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, extra_tables: List[str]=[], encoding='shift_jis') -> List[str]:
-    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict, column_set = show_data_type(lines, extra_tables, encoding=encoding, only_show=False)
+def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[int], evidence_excel_path: str,  source_type: str, active_rule_set: set, system_types: List[int], extra_tables: List[str]=[], encoding='shift_jis') -> List[str]:
+    unused_keys, filter_keys, mapping, new_col_name_to_table_and_data_type_dict, column_set = show_data_type(lines, system_types, extra_tables, encoding=encoding, only_show=False)
 
     # Export used keys to Excel
     if app:
-        filter_excel(app, evidence_excel_path, filter_keys)
         filter_excel(
             app,
             excel_path=evidence_excel_path,
-            filter_values=filter_keys
+            filter_values=filter_keys,
+            system_types=system_types
         )
     else:
         st.warning("Skipping evidence data export.")
@@ -146,7 +148,7 @@ def process_and_replace_lines(app: xw.App,lines: List[str], line_indexes: List[i
 
     return new_lines
 
-def show_data_type(lines: List[str], extra_tables, only_show=False, encoding='shift_jis') -> Tuple[List[str], set, dict, dict]:
+def show_data_type(lines: List[str],  system_types: List[int], extra_tables, only_show=False, encoding='shift_jis') -> Tuple[List[str], set, dict, dict]:
     valid_columns = extract_column_names_from_sheet()
     sheets = load_all_sheets()
     schema_dict, table_dict, column_dict, key_dict = build_mappings(sheets)
@@ -163,7 +165,7 @@ def show_data_type(lines: List[str], extra_tables, only_show=False, encoding='sh
     if table_list:
         st.write(f"Tables:")
         st.code(','.join(table_list))
-    full_type_df = get_full_type_df()
+    full_type_df = get_full_type_df(system_types)
     filtered_df  = full_type_df[full_type_df['table_name'].isin(filter_keys) & full_type_df['column_name'].isin(filter_keys)]
 
     mapping, column_set = build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict)

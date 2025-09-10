@@ -1,3 +1,4 @@
+from typing import List
 import pandas as pd
 import xlwings as xw
 from pathlib import Path
@@ -18,7 +19,7 @@ def exist_default_sheet_name(sheets) -> bool:
             return True
     return False
 
-def filter_excel(app: xw.App, excel_path, filter_values):
+def filter_excel(app: xw.App, excel_path, filter_values,  system_types: List[int]):
     input_path = Path(excel_path).resolve()
     wb = app.books.open(str(input_path))
     try:
@@ -26,7 +27,17 @@ def filter_excel(app: xw.App, excel_path, filter_values):
             wb.sheets.add(name=SHEET_NAME_DEFAULT)
         # sheets = wb.sheets if sheet_names is None else [wb.sheets[name] for name in sheet_names]
         for sheet in wb.sheets:
-            sheet_name = sheet.name.lower()
+            sheet_name: str = sheet.name.lower()
+            if sheet_name.startswith("type"):
+                match = False
+                for system_type in system_types:
+                    if sheet_name.startswith(f"type{system_type}"):
+                        match = True
+                        break
+                if not match:
+                    sheet.delete()
+                    continue
+                
             if sheet_name not in SHEET_CONFIG_MAP and sheet_name != SHEET_NAME_DEFAULT.lower():
                 sheet.delete()
                 continue

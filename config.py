@@ -25,6 +25,7 @@ SHEET_CONFIG_MAP = {
     "type3.2": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 100},
     "type3.3": {"number_header_rows": 1, "filter_columns": ["C", "E"], "num_cols": 10, "num_rows": 100}
 }
+
 EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1.1' , 'type1.2',  'type2.1' , 'type2.2', 'type2.3', 'type3.1' , 'type3.2', 'type3.3']
 
 # COMMON CONFIG PATH
@@ -52,6 +53,26 @@ C_SVN_ROOT_PATH = os.getenv("C_SVN_ROOT_PATH").replace('/','\\')
 
 
 SOURCE_TYPE_OPTIONS = ['java', 'c']
+FILE_EXCEL_NAME_TO_SHEET_TYPE_MAP_BY_SOURCE_TYPE = {
+    "java" : {
+        "webbk_ct": [1],
+        "webbk_fb": [1],
+        "webbk_JavaBatch": [1],
+        "webbk": [1],
+        "otpif": [3],
+        "webfb_ct": [2],
+        "webfb": [2],
+        "webfb-polling": [2]
+    },
+    "c" : {
+        "wbroot": [1],
+        "fbroot": [2],
+        "pdf_fax": [2],
+        "zenroot":[2],
+        "comroot": [1,2],
+        "No.23,24": [1,2],
+    }
+}
 
 @dataclass
 class SouceConfig:
