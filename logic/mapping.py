@@ -1,3 +1,4 @@
+# -*- coding: euc_jp -*-
 from typing import Set, Tuple
 from pandas import DataFrame
 
@@ -6,6 +7,7 @@ def get_full_schema_table_and_column_names_from_sheets(sheets) -> Set[str]:
     result_set =  {str(row[i]).upper() for row in df.to_numpy() for i in range(2, 6) if row[i]}
     for row in sheets['key'].to_numpy()[2:]:
         result_set.add(row[5].upper())
+    result_set.add('¶â¸Ë')
     return result_set
 
 def build_mappings(sheets) -> tuple:
@@ -19,6 +21,7 @@ def build_mappings(sheets) -> tuple:
         column_dict.setdefault(table, {}).setdefault(column, set()).add(value)
     for row in sheets['key'].to_numpy()[2:]:
         key_dict.setdefault(row[5], set()).add(row[8])
+    schema_dict['¶â¸Ë'] = {'schm_kinko'}
     return schema_dict, table_dict, column_dict, key_dict
 
 def build_full_mapping(used_keys, schema_dict, table_dict, column_dict, key_dict) -> Tuple[dict[str, set], set]:

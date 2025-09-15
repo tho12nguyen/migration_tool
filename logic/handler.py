@@ -1,3 +1,4 @@
+# -*- coding: euc_jp -*-
 
 from pathlib import Path
 import streamlit as st
@@ -18,10 +19,10 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
     file_path = Path(file_path)
     raw = file_path.read_bytes()
     common_encodings = [
+        'euc_jp',          # EUC-JP (Unix/Linux Japanese files)
         'cp932',           # Windows Japanese (Shift_JIS variant, most common on Windows)
         'shift_jis',       # Standard legacy Shift_JIS
         'shift_jisx0213',  # Extended Shift_JIS (rare/modern Kanji)
-        'euc_jp',          # EUC-JP (Unix/Linux Japanese files)
         'iso2022_jp',      # JIS encoding (used in emails, older systems)
         'iso2022_jp_1',    # Variant of ISO-2022-JP
         'iso2022_jp_2',    # Another variant (supports extended characters)
@@ -155,6 +156,8 @@ def show_data_type(lines: List[str],  system_types: List[int], extra_tables, onl
 
     block = ''.join(lines)
     (used_keys, unused_keys) = extract_full_keys(block, valid_columns, encoding)
+    if '¶â¸Ë' in  used_keys:
+        used_keys.append("¶â¸Ë@@@@")
     if extra_tables:
         used_keys.extend(extra_tables)
     st.code(','.join(used_keys))
