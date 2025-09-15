@@ -55,6 +55,7 @@ def has_sql_condition(sql_line: str) -> bool:
         r"\bEXISTS\b",       # EXISTS
         r"\bANY\b",          # = ANY(...)
         r"\bALL\b",          # = ALL(...)
+        r"\bCASE\b",         # CASE ... WHEN ... THEN ... END
         r"\bWHEN\b"          # CASE A.COLUMN WHEN THEN ... END
     ]
 
