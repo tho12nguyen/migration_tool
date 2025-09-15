@@ -109,7 +109,15 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
             continue
 
         # Split code and comment
-        code_part, comment_part = re.split(r'//', line, maxsplit=1) if '//' in line else (line, '')
+        if '//' in line:
+            code_part, comment_part = re.split(r'//', line, maxsplit=1)
+            comment_part = '//' + comment_part  # keep the //
+        # Then check for /* ... */ comments
+        elif '/*' in line and '*/' in line:
+            code_part, comment_part = re.split(r'/\*', line, maxsplit=1)
+            comment_part = '/*' + comment_part  # keep the opening /*
+        else:
+            code_part, comment_part = line, ''
         raw_line = code_part
         # Replace by mapping
         for word in extract_japanese_alphanum(code_part):
@@ -141,7 +149,7 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
             if insert_flag and word.upper() == 'VALUES':
                 insert_flag = False
         # Reattach comment
-        final_line = f"{raw_line}//{comment_part}" if comment_part else raw_line
+        final_line = f"{raw_line}{comment_part}" if comment_part else raw_line
         if len(table_and_data_types) > 0 and (insert_flag or has_sql_condition(raw_line)):
             output_rule2_mapping.append(((line_indexes[idx], final_line), table_and_data_types))
         output_lines.append(final_line)
