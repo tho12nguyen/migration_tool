@@ -656,7 +656,7 @@ with tab7:
                             st.error(f"Encoding could not be detected for {des_path_after}")
                             continue
                         lines = None
-                        with open(des_path_after, 'r', encoding=encoding) as f:
+                        with open(des_path_after, 'r', encoding=encoding, newline="") as f:
                             lines = f.readlines()
                         if not lines:
                             st.error(f"No lines read from {des_path_after}")
@@ -698,7 +698,7 @@ with tab7:
                         
                         if query_line != new_lines:
                             lines[line_index - 1] = new_lines
-                            with open(des_path_after, 'w', encoding=encoding) as f:
+                            with open(des_path_after, 'w', encoding=encoding, newline="") as f:
                                 f.writelines(lines)
 
                         st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")

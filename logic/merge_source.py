@@ -9,12 +9,12 @@ def merge_source_file(original_path: str, change_path: str, dest_path: str, enco
         dest_path (str): Path to the destination file where changes will be applied
     """
     # Step 1: Load files
-    with open(original_path, 'r', encoding=encoding) as f:
+    with open(original_path, 'r', encoding=encoding, newline="") as f:
         original_lines = f.readlines()
 
-    with open(change_path, 'r', encoding=encoding) as f:
+    with open(change_path, 'r', encoding=encoding, newline="") as f:
         changed_lines = f.readlines()
-    with open(dest_path, 'r', encoding=encoding) as f:
+    with open(dest_path, 'r', encoding=encoding, newline="") as f:
         dest_lines = f.readlines()
     
     if (len(original_lines) != len(dest_lines)):
@@ -61,7 +61,7 @@ def merge_source_file(original_path: str, change_path: str, dest_path: str, enco
             # append line if it's beyond the end
             dest_lines.append(new_lines_map[idx])
     # Step 5: Save result
-    with open(dest_path, 'w', encoding=encoding) as f:
+    with open(dest_path, 'w', encoding=encoding, newline="") as f:
         f.writelines(dest_lines)
     
     return result
