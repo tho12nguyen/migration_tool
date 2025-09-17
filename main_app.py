@@ -24,10 +24,11 @@ tab_titles = [
     "Merge Source Files",
     "Check rule 2 XO",
     "Manual Replace Tool",
-    "Tools for source C"
+    "Tools for source C",
+    "Fix UNIX format"
 ]
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7= st.tabs(tab_titles)
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8= st.tabs(tab_titles)
 
 with tab1:
     SOURCE_TYPE = st.radio("Source Type", SOURCE_TYPE_OPTIONS, horizontal=True, key="source_type_tab1")
@@ -701,6 +702,69 @@ with tab7:
                             with open(des_path_after, 'w', encoding=encoding, newline="") as f:
                                 f.writelines(lines)
 
+                        st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
+                    except Exception as e:
+                        st.error(f"Failed to create item No.{item_no}: {e}")
+                    
+with tab8:
+    SOURCE_TYPE8 = st.radio("Source Type", SOURCE_TYPE_OPTIONS ,  index= 1,horizontal=True, key="source_type_tab8")
+    txt_items = st.text_area("Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE):", height=300, key="input_list_tab8")
+
+    btn_col1, = st.columns(1)
+    btn_fix_unix_format = btn_col1.button("FIX", key="btn_init_tab8")
+    if btn_fix_unix_format:
+        if not txt_items.strip():
+            st.warning(" Please input item list")
+        else:
+            source_configs = get_configs_by_source_type(SOURCE_TYPE7)
+
+            raw_lines = txt_items.strip().splitlines()
+            items = []
+            errors = []
+            for idx, line in enumerate(raw_lines, start=1):
+                parts = re.split(r'[\t]+', line.strip())
+                if len(parts) != 4:
+                    errors.append(f"Line {idx} is invalid: {line}")
+                    continue
+                items.append(parts)
+
+            if errors:
+                st.error("Some lines are invalid:")
+                st.code("\n".join(errors))
+            else:
+                item_map = {item_no: (src_label, full_file_name, start_line) for item_no, src_label, full_file_name, start_line in items}
+                created_items = []
+
+                for item_no in sorted(item_map.keys()):
+                    src_label, full_file_name, start_line = item_map.get(item_no)
+                    # Extract file info
+                    try:
+                        file_type = full_file_name.split('.')[-1]
+                        file_name = full_file_name.rsplit('.', 1)[0]
+                        
+                        src_path = source_configs.ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:]
+                        file_path = source_configs.SVN_ROOT_PATH + "/" +''.join((src_label, full_file_name))[1:]
+
+                        st.markdown(f"## Start process for No.{item_no}")
+                        st.write(str(src_path))
+                        st.write(str(file_path))
+                        encoding = handler.get_encoded_file(file_path)
+                        if not encoding:
+                            st.error(f"Encoding could not be detected for {des_path_after}")
+                            continue
+
+                        content = None
+                        with open(file_path, "r", encoding=encoding, newline="") as f:
+                            content = f.read()
+                        if content:
+                            st.code(f"Original content sample:\n{repr(content[:200])}")
+                            content = content.replace("\r\n", "\n")
+                            st.code(f"Processed content sample:\n{repr(content[:200])}")
+                            with open(file_path, 'w', encoding=encoding, newline="\n") as f:
+                                f.writelines(content)
+                        else:
+                            st.warning(f"No content read from {file_path}")
+                            continue
                         st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
                     except Exception as e:
                         st.error(f"Failed to create item No.{item_no}: {e}")
