@@ -12,6 +12,36 @@ import xlwings as xw
 from utils import file_utils
 from logic import merge_source
 from tools import validate_rule_tool
+import difflib
+from streamlit.components.v1 import html
+
+def show_diff(lines, new_lines):
+    # Generate side-by-side diff
+    differ = difflib.HtmlDiff(wrapcolumn=80)
+    diff_table = differ.make_table(
+        lines,
+        new_lines,
+        fromdesc="Original",
+        todesc="Processed",
+        context=True,   # only show surrounding changes
+        numlines=1      # lines of context
+    )
+
+    # Custom CSS to make it look modern
+    custom_css = """
+    <style>
+    table.diff {font-family: monospace; border-collapse: collapse; width: 100%;}
+    .diff_header {background-color: #f0f0f0; font-weight: bold;}
+    td, th {padding: 4px 8px;}
+    .diff_next {background-color: #e0e0e0;}
+    .diff_add {background-color: #e6ffe6;}  /* green */
+    .diff_chg {background-color: #ffffcc;}  /* yellow */
+    .diff_sub {background-color: #ffe6e6;}  /* red */
+    </style>
+    """
+    if diff_table:
+        st.markdown("### Differences (Original vs Processed)")
+        html(custom_css + diff_table, height=600, scrolling=True)
 
 
 st.set_page_config(page_title="Code Checker", layout="wide")
@@ -562,7 +592,10 @@ with tab6:
                 if is_export_excel:
                     st.warning(f"Exported evidence to: {evidence_excel_path}")
                 final_code = "".join(new_lines)
+                
+                show_diff(lines, new_lines)
                 st.code(final_code)
+
             finally:
                 if 'app' in locals() and app:
                     app.quit()
