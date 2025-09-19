@@ -588,12 +588,12 @@ with tab6:
                 line_indexes = list(range(0, len(lines)))
                 active_rule_set = set(source_configs.RULE_CONFIGS.get(selected_sheet_name6.upper(), []))
                 new_lines = handler.process_and_replace_lines(app, lines, line_indexes, evidence_excel_path, source_type, active_rule_set,  system_types, extra_tables)
+
+                show_diff(lines, new_lines)
                 st.markdown("### Processed Code with Replacements")
+                final_code = "".join(new_lines)
                 if is_export_excel:
                     st.warning(f"Exported evidence to: {evidence_excel_path}")
-                final_code = "".join(new_lines)
-                
-                show_diff(lines, new_lines)
                 st.code(final_code)
 
             finally:
