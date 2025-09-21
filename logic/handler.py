@@ -19,9 +19,9 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
     file_path = Path(file_path)
     raw = file_path.read_bytes()
     common_encodings = [
+        'shift_jis',       # Standard legacy Shift_JIS
         'euc_jp',          # EUC-JP (Unix/Linux Japanese files)
         'cp932',           # Windows Japanese (Shift_JIS variant, most common on Windows)
-        'shift_jis',       # Standard legacy Shift_JIS
         'shift_jisx0213',  # Extended Shift_JIS (rare/modern Kanji)
         'iso2022_jp',      # JIS encoding (used in emails, older systems)
         'iso2022_jp_1',    # Variant of ISO-2022-JP

@@ -55,7 +55,7 @@ tab_titles = [
     "Check rule 2 XO",
     "Manual Replace Tool",
     "Tools for source C",
-    "Fix UNIX format"
+    "Correct formatting files"
 ]
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8= st.tabs(tab_titles)
@@ -775,28 +775,48 @@ with tab8:
                         file_type = full_file_name.split('.')[-1]
                         file_name = full_file_name.rsplit('.', 1)[0]
                         
-                        src_path = source_configs.ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:]
-                        file_path = source_configs.SVN_ROOT_PATH + "/" +''.join((src_label, full_file_name))[1:]
+                        src_path = source_configs.ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:] 
+                        svn_path = source_configs.SVN_ROOT_PATH + "/" +''.join((src_label, full_file_name))[1:]
 
                         st.markdown(f"## Start process for No.{item_no}")
                         st.write(str(src_path))
-                        st.write(str(file_path))
-                        encoding = handler.get_encoded_file(file_path)
+                        st.write(str(svn_path))
+                        encoding = handler.get_encoded_file(svn_path)
                         if not encoding:
                             st.error(f"Encoding could not be detected for {des_path_after}")
                             continue
 
-                        content = None
-                        with open(file_path, "r", encoding=encoding, newline="") as f:
-                            content = f.read()
-                        if content:
-                            st.code(f"Original content sample:\n{repr(content[:200])}")
-                            content = content.replace("\r\n", "\n")
-                            st.code(f"Processed content sample:\n{repr(content[:200])}")
-                            with open(file_path, 'w', encoding=encoding, newline="\n") as f:
-                                f.writelines(content)
+                        src_content = None
+                        svn_content = None
+                        with open(src_path, "r", encoding=encoding, newline="") as f:
+                            src_content = f.read()
+                        with open(svn_path, "r", encoding=encoding, newline="") as f:
+                            svn_content = f.read()
+                        old_svn_content = svn_content
+                        if src_content and svn_content:
+                            original_format = "Windows" if "\r\n" in src_content else "Unix" if "\n" in src_content else "Unknown"
+                            svn_format = "Windows" if "\r\n" in svn_content else "Unix" if "\n" in svn_content else "Unknown"
+                            st.write(f"Original format: {original_format}, SVN format: {svn_format}")
+                            if original_format != svn_format:
+                                replace_format = None
+                                if original_format =="Windows":
+                                    replace_format = "\r\n"
+                                elif original_format == "Unix":
+                                    replace_format = "\n"
+                                if replace_format == "\r\n":
+                                    old_format =  "\n"
+                                else:
+                                    old_format = "\r\n"
+
+                                svn_content = svn_content.replace(old_format,  replace_format)
+                                if svn_content != old_svn_content:
+                                    st.code(f"Original content sample:\n{repr(old_svn_content[:200])}")
+                                    st.code(f"Processed content sample:\n{repr(svn_content[:200])}")
+                                    st.write("Content format changed, updating file...")
+                                    with open(svn_path, 'w', encoding=encoding, newline="") as f:
+                                        f.writelines(svn_content)
                         else:
-                            st.warning(f"No content read from {file_path}")
+                            st.warning(f"No content read from {svn_path}")
                             continue
                         st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
                     except Exception as e:
