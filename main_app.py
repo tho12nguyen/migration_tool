@@ -483,12 +483,20 @@ with tab4:
                                         st.write(f"Original file: {original_path_file}")
                                         st.write(f"Change file: {change_path_file}")
                                         st.write(f"Destination file: {dest_file_path}")
-                                        encoding = handler.get_encoded_file(original_path_file)
-                                        if not encoding:
-                                            st.error(f"{encoding}: Encoding could not be detected for {original_path_file}")
+                                        src_encoding = handler.get_encoded_file(original_path_file)
+                                        change_encoding = handler.get_encoded_file(change_path_file)
+                                        dest_encoding = handler.get_encoded_file(dest_file_path)
+                                        if src_encoding != change_encoding:
+                                            st.warning(f"Encoding mismatch between original ({src_encoding}) and change ({change_encoding}) files.")
                                             continue
-                                        change_code = merge_source.merge_source_file(original_path_file, change_path_file, dest_file_path, encoding)
-                                        st.code(f"Change code:{encoding}\n {change_code}")
+                                        elif src_encoding != dest_encoding:
+                                            st.warning(f"Encoding mismatch between original ({src_encoding}) and destination ({dest_encoding}) files.")
+                                            continue
+                                        if not src_encoding:
+                                            st.error(f"{src_encoding}: Encoding could not be detected for {original_path_file}")
+                                            continue
+                                        change_code = merge_source.merge_source_file(original_path_file, change_path_file, dest_file_path, dest_encoding)
+                                        st.code(f"Change code:{src_encoding}\n\n {change_code}")
                                         count += 1
                                         st.success(f"Merge source for No.{item_no} completed successfully")
                                 except Exception as e:

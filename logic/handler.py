@@ -51,13 +51,17 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
             pass
     
     # Fallback to chardet if none worked
+    detected = chardet.detect(raw)
+    detect_encoding = detected.get("encoding") or "utf-8"
     if encoding is None:
         st.warning(f"Failed to decode {file_path.name} with common encodings. Using chardet to detect encoding.")
-        detected = chardet.detect(raw)
-        encoding = detected.get("encoding") or "utf-8"
-        try:
-            content = raw.decode(encoding)
-        except Exception:
+        encoding = detect_encoding
+    elif detect_encoding.upper() != encoding.upper():
+        st.warning(f"Detected encoding {detect_encoding.upper()} differs from common encoding {encoding.upper(())}. Using common encoding.")
+
+    try:
+        content = raw.decode(encoding)
+    except Exception:
             encoding = "utf-8"
             content = raw.decode(encoding)
 
