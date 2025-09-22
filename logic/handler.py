@@ -19,21 +19,25 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
     file_path = Path(file_path)
     raw = file_path.read_bytes()
     common_encodings = [
-        'shift_jis',       # Standard legacy Shift_JIS
-        'euc_jp',          # EUC-JP (Unix/Linux Japanese files)
-        'cp932',           # Windows Japanese (Shift_JIS variant, most common on Windows)
-        'shift_jisx0213',  # Extended Shift_JIS (rare/modern Kanji)
-        'iso2022_jp',      # JIS encoding (used in emails, older systems)
-        'iso2022_jp_1',    # Variant of ISO-2022-JP
-        'iso2022_jp_2',    # Another variant (supports extended characters)
-        'iso2022_jp_3',    # Rare, used for some Japanese emails
-        'iso2022_jp_ext',  # Extension for ISO-2022-JP
-        'utf-8',           # Modern Unicode, safe for Japanese
-        'utf-16',
-        'utf-32',        # Unicode variants, less common for Japanese text files
-        'utf-8-sig',       # UTF-8 with BOM, sometimes in Excel/Notepad
-        'ascii'            # Strict ASCII, safe if only basic chars
+        'cp932',            # Windows Japanese (Shift_JIS variant, most common on Windows)
+        'shift-jis',        # Standard Shift_JIS (ISO form)
+        'euc-jp',           # EUC-JP (Unix/Linux Japanese files)
+        'shift_jisx0213',   # Extended Shift_JIS (rare/modern Kanji)
+
+        'iso2022_jp',       # JIS encoding (used in emails, older systems)
+        'iso2022_jp_1',     # Variant of ISO-2022-JP
+        'iso2022_jp_2',     # Supports extended characters
+        'iso2022_jp_3',     # Rare, Japanese emails
+        'iso2022_jp_ext',   # Extension for ISO-2022-JP
+
+        'utf-8',            # Modern Unicode (safe, recommended)
+        'utf-8-sig',        # UTF-8 with BOM (Excel, Notepad)
+        'utf-16',           # Unicode 16-bit
+        'utf-32',           # Unicode 32-bit
+
+        'ascii'             # Only if plain English text
     ]
+
 
 
     encoding = None
