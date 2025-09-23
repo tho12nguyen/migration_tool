@@ -11,7 +11,7 @@ load_dotenv()
 
 SUB_ITEM_FOLDER_OPTIONS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'MERGE']
 
-SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS = ['NEXTVAL', 'SQLCA', "EXEC_SQL", "DB2_CONNECT", "SQLINT", "SQL_H", "SQLCODE"]
+SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS = ['NEXTVAL', 'SQLCA', "EXEC_SQL", "DB2_CONNECT", "SQLINT", "SQL_H", "SQLCODE", "No.20"]
 
 SHEET_CONFIG_MAP = {
     "schema": {"number_header_rows": 3, "filter_columns": ["D"], "num_cols": 8, "num_rows": 15},
@@ -104,7 +104,7 @@ def get_configs_by_source_type(source_type: str) -> SouceConfig:
                 C_SVN_ROOT_PATH,
                  ['_after.sqc', '_after.h', '_after.sh', '_after.c', '_after.txt', '_after.conf', '_after.ini'],
                  {
-                    "SELECT": [1,2,3,5,6,7,8,9,10,11,12,13,14,15,17,29,30],
+                    "SELECT": [1,2,5,6,7,8,9,10,11,12,13,14,15,17,29,30],
                     "UPDATE": [1,2, 4,5,6,7,8,9,10,12,13,15,29,30],
                     "INSERT": [1,2,5,6,7,8,9,10,12,13,15,29,30],
                     "DELETE": [1,2,5,6,7,8,9,10,12,13,15,29,30],
