@@ -8,7 +8,8 @@ from logic.mapping import build_full_mapping, build_mappings, get_full_schema_ta
 from logic.text_processing import extract_full_keys, replace_by_mapping
 from utils.excel_utils import filter_excel
 from typing import Dict
-import chardet
+
+from charset_normalizer import from_bytes
 import pandas as pd
 from config import FULL_EVIDENCE_INPUT_PATH
 import xlwings as xw
@@ -55,8 +56,8 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
             pass
     
     # Fallback to chardet if none worked
-    detected = chardet.detect(raw)
-    detect_encoding = detected.get("encoding") or "utf-8"
+    result = from_bytes(raw).best()
+    detect_encoding = result.encoding
     if encoding is None:
         st.warning(f"Failed to decode {file_path.name} with common encodings. Using chardet to detect encoding.")
         encoding = detect_encoding
