@@ -61,7 +61,14 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
         st.warning(f"Failed to decode {file_path.name} with common encodings. Using chardet to detect encoding.")
         encoding = detect_encoding
     elif detect_encoding.upper() != encoding.upper():
-        st.warning(f"Detected encoding {detect_encoding.upper()} differs from common encoding {encoding.upper()}. Using common encoding.")
+        st.warning(
+            f"Detected encoding `{detect_encoding.upper()}` differs from the expected encoding `{encoding.upper()}`. "
+            f"Using: {encoding.upper()}"
+        )
+        st.warning(
+            "Please ensure that the Change file and Destination file use the same encoding before merging."
+        )
+
 
     try:
         content = raw.decode(encoding)

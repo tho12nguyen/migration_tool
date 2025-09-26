@@ -487,10 +487,10 @@ with tab4:
                                         change_encoding = handler.get_encoded_file(change_path_file)
                                         dest_encoding = handler.get_encoded_file(dest_file_path)
                                         if src_encoding != change_encoding:
-                                            st.warning(f"Encoding mismatch between original ({src_encoding}) and change ({change_encoding}) files.")
+                                            st.error(f"Encoding mismatch between original ({src_encoding}) and change ({change_encoding}) files.")
                                             continue
                                         elif src_encoding != dest_encoding:
-                                            st.warning(f"Encoding mismatch between original ({src_encoding}) and destination ({dest_encoding}) files.")
+                                            st.error(f"Encoding mismatch between original ({src_encoding}) and destination ({dest_encoding}) files.")
                                             continue
                                         if not src_encoding:
                                             st.error(f"{src_encoding}: Encoding could not be detected for {original_path_file}")
@@ -742,7 +742,8 @@ with tab7:
                             lines[line_index - 1] = new_lines
                             with open(des_path_after, 'w', encoding=encoding, newline="") as f:
                                 f.writelines(lines)
-
+                            st.warning(des_html_path)
+                            # winmerge_util.run_winmerge(des_path, des_path_after, des_html_path)
                         st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
                     except Exception as e:
                         st.error(f"Failed to create item No.{item_no}: {e}")
