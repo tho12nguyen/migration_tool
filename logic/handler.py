@@ -6,10 +6,10 @@ from typing import List, Tuple
 from config import OUTPUT_EVIDENCE_EXCEL_NAME
 from logic.mapping import build_full_mapping, build_mappings, get_full_schema_table_and_column_names_from_sheets
 from logic.text_processing import extract_full_keys, replace_by_mapping
+from utils import charset_util
 from utils.excel_utils import filter_excel
 from typing import Dict
 
-from charset_normalizer import from_bytes
 import pandas as pd
 from config import FULL_EVIDENCE_INPUT_PATH
 import xlwings as xw
@@ -19,57 +19,20 @@ from rules import detect_rules
 def get_encoded_file(file_path: str | Path, return_content: bool = False):
     file_path = Path(file_path)
     raw = file_path.read_bytes()
-    common_encodings = [
-        'cp932',            # Windows Japanese (Shift_JIS variant, most common on Windows)
-        'shift-jis',        # Standard Shift_JIS (ISO form)
-        'euc-jp',           # EUC-JP (Unix/Linux Japanese files)
-        'shift_jisx0213',   # Extended Shift_JIS (rare/modern Kanji)
 
-        'iso2022_jp',       # JIS encoding (used in emails, older systems)
-        'iso2022_jp_1',     # Variant of ISO-2022-JP
-        'iso2022_jp_2',     # Supports extended characters
-        'iso2022_jp_3',     # Rare, Japanese emails
-        'iso2022_jp_ext',   # Extension for ISO-2022-JP
+    encoding = charset_util.detect_encode(raw)
+    detect_encoding = charset_util.detect_encode_use_lib(raw)
 
-        'utf-8',            # Modern Unicode (safe, recommended)
-        'utf-8-sig',        # UTF-8 with BOM (Excel, Notepad)
-        'utf-16',           # Unicode 16-bit
-        'utf-32',           # Unicode 32-bit
-
-        'ascii'             # Only if plain English text
-    ]
-
-
-
-    encoding = None
-    content = None
-
-    # Try common encodings first
-    for enc in common_encodings:
-        try:
-            decoded = raw.decode(enc)
-            encoding = enc
-            content = decoded
-            break
-        except UnicodeDecodeError:
-            # st.warning(f"Failed to decode {file_path.name} with {enc}")
-            pass
-    
-    # Fallback to chardet if none worked
-    result = from_bytes(raw).best()
-    detect_encoding = result.encoding
     if encoding is None:
         st.warning(f"Failed to decode {file_path.name} with common encodings. Using chardet to detect encoding.")
         encoding = detect_encoding
     elif detect_encoding.upper() != encoding.upper():
+        st.code(file_path)
         st.warning(
             f"Detected encoding `{detect_encoding.upper()}` differs from the expected encoding `{encoding.upper()}`. "
-            f"Using: {encoding.upper()}"
+            f"Using: {encoding.upper()}.\n"
+              "Please ensure that the Change file and Destination file use the same encoding before merging."
         )
-        st.warning(
-            "Please ensure that the Change file and Destination file use the same encoding before merging."
-        )
-
 
     try:
         content = raw.decode(encoding)

@@ -25,4 +25,13 @@ def del_files_by_paths(file_paths: List[str]) ->  List[str]:
         except Exception as e:
             errors.append(f"Error deleting file {file_path}: {e}")
     return errors
-        
+    
+def detect_eol_str_by_content(content: str) -> str:
+    return "Windows" if "\r\n" in content else "Unix"
+
+def detect_eol_by_content(eos_str: str) -> str:
+    if eos_str =="Windows":
+        eol_format = "\r\n"
+    elif eos_str == "Unix":
+        eol_format = "\n"
+    return eol_format

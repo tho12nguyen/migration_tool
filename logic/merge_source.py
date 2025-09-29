@@ -1,5 +1,7 @@
 import difflib
 
+from utils import file_utils
+
 
 def merge_source_file(original_path: str, change_path: str, dest_path: str, encoding='shift_jis') -> str:
     """Merges changes from a change file into a destination file based on an original file
@@ -17,6 +19,10 @@ def merge_source_file(original_path: str, change_path: str, dest_path: str, enco
     with open(dest_path, 'r', encoding=encoding, newline="") as f:
         dest_lines = f.readlines()
     
+    original_eol_format = file_utils.detect_eol_str_by_content(''.join(original_lines))
+    dest_eol_format = file_utils.detect_eol_str_by_content(''.join(dest_lines))
+    if original_eol_format != dest_eol_format:
+        raise ValueError(f"Original and destination files must have same EOL format.  EOL SOURCE: {original_eol_format}, EOL DEST: {dest_eol_format}")
     if (len(original_lines) != len(dest_lines)):
         raise ValueError("Original and destination files must have the same number of lines")
 

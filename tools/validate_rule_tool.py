@@ -29,13 +29,13 @@ def read_file_lines(file_path):
     encodings = ['cp932', 'shift_jis', 'utf-8', 'euc_jp', 'latin-1']
     for enc in encodings:
         try:
-            with open(file_path, 'r', encoding=enc, errors='ignore') as f:
+            with open(file_path, 'r', encoding=enc, errors='ignore', newline="") as f:
                 return f.readlines()
         except Exception:
             continue
 
     try:
-        with open(file_path, 'rb') as f:
+        with open(file_path, 'rb', newline="") as f:
             content = f.read()
         return content.decode('cp932', errors='ignore').splitlines(True)
     except Exception:
