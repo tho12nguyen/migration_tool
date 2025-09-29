@@ -4,6 +4,18 @@ from logic import text_processing
 from rules import common_detect_rules
 
 
+# Mapping table for rule 22
+code_map = {
+    "-407": "23502",
+    "-204": "42P01",
+    "-539": "42704",
+    "-601": "42P07",
+    "-612": "42701",
+    "-624": "42P16",
+    "-803": "23505",
+    "-911": "40P01",
+}
+
 def detect_rules(lines: List[str], rules, active_rule_set: set):
     raw_query = ''.join(lines)
     querySQL = text_processing.extract_sql_fragments(raw_query)
@@ -66,6 +78,9 @@ def detect_and_apply_rules(query: str, source_type: str, active_rule_set: set) -
     """
     Apply regex-based replacement rules to the input query.
     """
+    if 22 in active_rule_set:
+        query = transform_line_for_rule22(query)
+
     rules = common_detect_rules.load_all_rules(source_type)
     matched_rules = []
     for rule in rules:
@@ -82,3 +97,99 @@ def detect_and_apply_rules(query: str, source_type: str, active_rule_set: set) -
                 while re.search(pattern, query, flags=re.IGNORECASE):
                     query = re.sub(pattern, replace, query, flags=re.IGNORECASE)    
     return query, matched_rules
+
+
+def is_in_comment_or_string_for_rule22(line: str, pos: int) -> bool:
+    """
+    Check if a match is inside a comment (//) or string ("...").
+    """
+    comment_pos = line.find("//")
+    quote_pos = line.find('"')
+    return (comment_pos != -1 and pos > comment_pos) or (quote_pos != -1 and pos > quote_pos)
+
+
+def replace_defines_for_rule22(line: str) -> str:
+    """
+    Case 1: Replace #define SQLCODE with SQLSTATE
+    """
+    def repl(m):
+        prefix, name, suffix, code, comment = m.groups()
+        if code in code_map:
+            return f'{prefix}{name}_SQLSTATE_{suffix}   "{code_map[code]}"{comment or ""}'
+        return m.group(0)
+
+    return re.sub(r'(#define\s+)(\w+)_SQLCODE_(\w+)\s+(-?\d+)(\s*//.*)?', repl, line)
+
+
+def replace_conditions_for_rule22(line: str) -> str:
+    """
+    Case 2: Replace SQLCODE checks (numeric + macro) with SQLSTATE_CHECK
+    """
+    # Replace numeric codes
+    def repl_num(m):
+        op, code = m.groups()
+        if is_in_comment_or_string_for_rule22(line, m.start()):
+            return m.group(0)
+        if code in code_map:
+            if op == "==":
+                return f'SQLSTATE_CHECK("{code_map[code]}")'
+            elif op == "!=":
+                return f'!SQLSTATE_CHECK("{code_map[code]}")'
+        return m.group(0)
+
+    line = re.sub(r'SQLCODE\s*([!=]=)\s*(-?\d+)', repl_num, line)
+
+    # Replace macro codes
+    def repl_macro_for_rule22(m):
+        op, macro = m.groups()
+        if is_in_comment_or_string_for_rule22(line, m.start()):
+            return m.group(0)
+        if "_SQLCODE_" in macro:
+            sqlstate_macro = macro.replace("_SQLCODE_", "_SQLSTATE_")
+            if op == "==":
+                return f'SQLSTATE_CHECK({sqlstate_macro})'
+            elif op == "!=":
+                return f'!SQLSTATE_CHECK({sqlstate_macro})'
+        return m.group(0)
+
+    line = re.sub(r'SQLCODE\s*([!=]=)\s*(\w+_SQLCODE_\w+)', repl_macro_for_rule22, line)
+
+    return line
+
+
+# Allowed log-output functions
+log_funcs = [
+    "sprintf", "fprintf",
+    "FKCI_LogPrnt", "DBGOUT01", "FCIB_LogPrnt",
+    "FJG_kz_LogPrint", "FJG_LogPrint",
+    "FWGF_LogPrnt", "FWGI_LogPrn",
+    "FWMH_LogPrnt", "FWSR_logprint",
+    "DBG_MSG"
+]
+
+log_func_pattern = r"(?:{})".format("|".join(log_funcs))
+
+
+def replace_log_output_for_rule22(line: str) -> str:
+    """
+    Replace SQLCODE with SQLSTATE_GET() in function arguments (sprintf, fprintf, etc.)
+    and remove (int) cast if directly applied to SQLCODE.
+    """
+
+    # 1. Remove (int) cast if it's right before SQLCODE
+    line = re.sub(r'\(int\)\s*SQLCODE', 'SQLSTATE_GET()', line)
+
+    # 2. Replace plain SQLCODE when used as argument (inside (), , , etc.)
+    line = re.sub(r'([,(]\s*)SQLCODE(\s*[,)])', r'\1SQLSTATE_GET()\2', line)
+
+    return line
+
+
+def transform_line_for_rule22(line: str) -> str:
+    """
+    Apply all transformations (define + conditions).
+    """
+    line = replace_defines_for_rule22(line)
+    line = replace_conditions_for_rule22(line)
+    line = replace_log_output_for_rule22(line)
+    return line

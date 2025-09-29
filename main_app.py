@@ -654,7 +654,7 @@ with tab7:
                 st.error("Some lines are invalid:")
                 st.code("\n".join(errors))
             else:
-                item_map = {item_no: (src_label, full_file_name, start_line) for item_no, src_label, full_file_name, start_line in items}
+                item_map = {int(item_no): (src_label, full_file_name, start_line) for item_no, src_label, full_file_name, start_line in items}
                 created_items = []
 
                 for item_no in sorted(item_map.keys()):
