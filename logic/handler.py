@@ -26,7 +26,7 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
     if encoding is None:
         st.warning(f"Failed to decode {file_path.name} with common encodings. Using chardet to detect encoding.")
         encoding = detect_encoding
-    elif detect_encoding.upper() != encoding.upper():
+    elif charset_util.is_same_encodings(encoding, detect_encoding) is False:
         st.code(file_path)
         st.warning(
             f"Detected encoding `{detect_encoding.upper()}` differs from the expected encoding `{encoding.upper()}`. "

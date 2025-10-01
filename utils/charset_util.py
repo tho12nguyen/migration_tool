@@ -39,7 +39,26 @@ ENCODING_ALIASES = {
     'us_ascii': 'ascii',
     'ascii': 'ascii'
 }
+ENCODE_GROUPS = {
+    "cp932": 1,
+    "shift-jis": 2,
+    "shift_jisx0213": 2,
+    "euc-jp": 3,
+    "euc_jis_2004": 3,
+    "iso2022_jp": 4,
+    "iso2022_jp_1": 4,
+    "iso2022_jp_2": 4,
+    "iso2022_jp_3": 4,
+    "iso2022_jp_ext": 4,
+    "utf-8": 5,
+    "utf-8-sig": 5,
+    "utf-16": 6,
+    "utf-32": 7,
+    "ascii": 8
+}
 
+def is_same_encodings(enc1: str, enc2: str) -> int:
+    return ENCODE_GROUPS[enc1] == ENCODE_GROUPS[enc2]
 def normalize_encoding(enc: str) -> str:
     """Normalize encoding names to match common_encodings list."""
     if not enc:
