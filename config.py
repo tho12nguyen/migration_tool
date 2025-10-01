@@ -1,6 +1,5 @@
 # -*- coding: euc_jp -*-
 
-from pathlib import Path
 import os
 from dotenv import load_dotenv
 from dataclasses import dataclass
@@ -29,6 +28,9 @@ SHEET_CONFIG_MAP = {
 }
 
 EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1.1' , 'type1.2',  'type2.1' , 'type2.2', 'type2.3', 'type3.1' , 'type3.2', 'type3.3']
+
+#
+NOTHING_TO_FIX_FILE_NAME = "修正対象ソースコードがないため、対応不要.txt"
 
 # COMMON CONFIG PATH
 OUTPUT_EVIDENCE_EXCEL_NAME = "evidence.xlsx"

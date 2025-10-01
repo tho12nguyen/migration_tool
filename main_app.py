@@ -611,6 +611,16 @@ with tab6:
                 
 with tab7:
     SOURCE_TYPE7 = st.radio("Source Type", SOURCE_TYPE_OPTIONS ,  index= 1,horizontal=True, key="source_type_tab7", disabled=True)
+    
+    default_value_file_name = selected_excel_file_name2
+    if default_value_file_name == None:
+        default_value_file_name = ''
+    selected_excel_file_name7 = st.text_input(
+        "Select excel file name",
+        value=default_value_file_name, 
+        key="excel_file_name_tab7"
+    )
+
     selected_sheet_name = st.selectbox(
         "Select sheet name",
         options=SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS,
@@ -637,7 +647,7 @@ with tab7:
             st.warning(" Please input item list")
         else:
             source_configs = get_configs_by_source_type(SOURCE_TYPE7)
-            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_sheet_name}'
+            FULL_ITEM_ROOT_PATH = f'{source_configs.ROOT_OUTPUT_PATH}/{selected_excel_file_name7}/{selected_sheet_name}'
             FULL_DAILY_FOLDER_PATH = f"{FULL_ITEM_ROOT_PATH}/{DAILY_FOLDER_STR}" if DAILY_FOLDER_STR else None
 
             raw_lines = txt_items.strip().splitlines()
@@ -673,6 +683,7 @@ with tab7:
                         des_excel_path = f'{des_folder_name}/{EXCEL_FILE_NAME}'
                         des_html_path = f'{des_folder_name}/{HTML_FILE_NAME}'
                         des_evidence_path = f'{des_folder_name}/{OUTPUT_EVIDENCE_EXCEL_NAME}'
+                        nothing_to_fix_file_path = f"{des_folder_name}/{NOTHING_TO_FIX_FILE_NAME}"
 
                         st.markdown(f"## Start process for No.{item_no}")
                         # Copy template files
@@ -680,6 +691,7 @@ with tab7:
                             st.warning(f"File already exists, skipping copy: {des_path}")
                         else:
                             shutil.copy(src_path, des_path)
+                            os.chmod(des_path, 0o666)
 
                         if os.path.exists(des_path_after):
                             os.remove(des_path_after)
@@ -689,6 +701,7 @@ with tab7:
                         os.chmod(des_path_after, 0o666)
                         # shutil.copy(TEMPLATE_EXCEL_PATH, des_excel_path)
                         shutil.copy(TEMPLATE_HTML_PATH, des_html_path)
+                        os.chmod(des_html_path, 0o666)
                         # shutil.copy(FULL_EVIDENCE_INPUT_PATH, des_evidence_path)
                         
                         # Process it
@@ -744,6 +757,12 @@ with tab7:
                                 f.writelines(lines)
                             st.warning(des_html_path)
                             # winmerge_util.run_winmerge(des_path, des_path_after, des_html_path)
+                        else:
+                            open(nothing_to_fix_file_path, "w").close()
+                            st.error("Nothing to fix")
+                            os.remove(des_path)
+                            os.remove(des_path_after)
+                            os.remove(des_html_path)
                         st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
                     except Exception as e:
                         st.error(f"Failed to create item No.{item_no}: {e}")
