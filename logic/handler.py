@@ -37,7 +37,7 @@ def get_encoded_file(file_path: str | Path, return_content: bool = False):
     try:
         content = raw.decode(encoding)
     except Exception:
-            encoding = "utf-8"
+            encoding =  charset_util.DEFAULT_ENCODING
             content = raw.decode(encoding)
 
     return (encoding, content) if return_content else encoding

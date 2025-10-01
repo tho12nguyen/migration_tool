@@ -1,12 +1,15 @@
 
 from charset_normalizer import from_bytes
 
+DEFAULT_ENCODING = 'utf-8'
+
+
 common_encodings = [
         'cp932',            # Windows Japanese (Shift_JIS variant, most common on Windows)
         'shift-jis',        # Standard Shift_JIS (ISO form)
         'euc-jp',           # EUC-JP (Unix/Linux Japanese files)
         'shift_jisx0213',   # Extended Shift_JIS (rare/modern Kanji)
-
+        "euc_jis_2004",     # Extended EUC-JP (rare/modern Kanji)
         'iso2022_jp',       # JIS encoding (used in emails, older systems)
         'iso2022_jp_1',     # Variant of ISO-2022-JP
         'iso2022_jp_2',     # Supports extended characters
@@ -22,8 +25,8 @@ common_encodings = [
     ]
 
 ENCODING_ALIASES = {
-    'euc_jis_2004': 'euc-jp',
-    'euc_jisx0213': 'euc-jp',
+    'euc_jis_2004': 'euc_jis_2004',
+    'euc_jisx0213': 'euc_jisx0213',
     'shift_jisx0213': 'shift_jisx0213',
     'ms932': 'cp932',
     'cp932': 'cp932',
@@ -40,7 +43,7 @@ ENCODING_ALIASES = {
 def normalize_encoding(enc: str) -> str:
     """Normalize encoding names to match common_encodings list."""
     if not enc:
-        return "utf-8"
+        return DEFAULT_ENCODING
     return ENCODING_ALIASES.get(enc.lower(), enc.lower())
 
 def detect_encode_use_lib(content_bytes: bytes) -> str:
@@ -51,7 +54,7 @@ def detect_encode_use_lib(content_bytes: bytes) -> str:
     results = from_bytes(content_bytes)
 
     if not results:
-        return "utf-8"  # fallback if nothing detected
+        return DEFAULT_ENCODING
 
     # Sort by best match (higher coherence = better)
     results = sorted(results, key=lambda r: r.fingerprint or 0, reverse=True)
