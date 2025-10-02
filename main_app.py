@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 import streamlit as st
 from config import *
@@ -14,6 +15,8 @@ from logic import merge_source
 from tools import validate_rule_tool
 import difflib
 from streamlit.components.v1 import html
+
+DEFAULT_SEPARATOR = "\x1f"
 
 def show_diff(lines, new_lines):
     # Generate side-by-side diff
@@ -664,11 +667,11 @@ with tab7:
                 st.error("Some lines are invalid:")
                 st.code("\n".join(errors))
             else:
-                item_map = {int(item_no): (src_label, full_file_name, start_line) for item_no, src_label, full_file_name, start_line in items}
+                item_map = {int(item_no): (src_label, full_file_name, data_line) for item_no, src_label, full_file_name, data_line in items}
                 created_items = []
 
                 for item_no in sorted(item_map.keys()):
-                    src_label, full_file_name, start_line = item_map.get(item_no)
+                    src_label, full_file_name, data_line = item_map.get(item_no)
                     des_folder_name = f"{FULL_DAILY_FOLDER_PATH}/No.{item_no}"
                     os.makedirs(des_folder_name, exist_ok=True)
 
@@ -717,11 +720,18 @@ with tab7:
                             st.error(f"No lines read from {des_path_after}")
                             continue
                         
-                        line_index = common_util.parse_int(start_line)
-                        if line_index == -1 or line_index < 1 or line_index > len(lines):
+                        start_line = data_line.split(",")[0].strip()
+                        end_line = data_line.split(",")[1].strip() if len(data_line.split(",")) > 1 else start_line
+                        start_line_index = common_util.parse_int(start_line) - 1
+                        end_line_index = common_util.parse_int(end_line) -  1
+                        if start_line_index == -1 or start_line_index < 0 or start_line_index > len(lines):
                             st.error(f"Invalid start line {start_line} for file with {len(lines)} lines.")
                             continue
-                        query_line = lines[line_index - 1]
+                        if end_line_index == -1 or start_line_index < 0 or start_line_index > len(lines) and end_line_index < start_line_index:
+                            st.error(f"Invalid end line {end_line} for file with {len(lines)} lines.")
+                            continue
+                        
+                        query_line =  DEFAULT_SEPARATOR.join(lines[start_line_index:end_line_index+1])
                         if not query_line:
                             st.error(f"No lines to process from line {start_line} onwards. value: {query_line}")
                             continue
@@ -745,14 +755,15 @@ with tab7:
                         col1, col2 = st.columns(2)
                         with col1:
                             st.markdown("##### Original line")
-                            st.code(query_line)
+                            st.code(query_line.replace(DEFAULT_SEPARATOR, ""))
                         with col2:
                             st.markdown("##### Processed line")
                             if new_lines:
-                                st.code(new_lines)
+                                st.code(new_lines.replace(DEFAULT_SEPARATOR, ""))
                         
                         if query_line != new_lines:
-                            lines[line_index - 1] = new_lines
+                            new_lines_list = new_lines.split(DEFAULT_SEPARATOR)
+                            lines[start_line_index:end_line_index+1] = new_lines_list
                             with open(des_path_after, 'w', encoding=encoding, newline="") as f:
                                 f.writelines(lines)
                             st.warning(des_html_path)
