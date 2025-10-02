@@ -10,7 +10,7 @@ load_dotenv()
 
 SUB_ITEM_FOLDER_OPTIONS = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'MERGE', 'IMPORT', 'DDL']
 
-SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS = ['NEXTVAL', 'SQLCA', "EXEC_SQL", "DB2_CONNECT", "SQLINT", "SQL_H", "SQLCODE", "No20", "db2SQL"]
+SUB_ITEM_FOLDER_FOR_SOURCE_C_OPTIONS = ['NEXTVAL', "SQLCODE", "No20", "db2SQL"]
 
 SHEET_CONFIG_MAP = {
     "schema": {"number_header_rows": 3, "filter_columns": ["D"], "num_cols": 8, "num_rows": 15},
@@ -121,7 +121,7 @@ def get_configs_by_source_type(source_type: str) -> SouceConfig:
                     "No20": [20],
                     "SQLINT": [21],
                     "SQL_H": [27],
-                    "db2SQL": [28, 29, 30],
+                    "db2SQL": [28],
                  },
             )
         case _:
