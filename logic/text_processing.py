@@ -144,7 +144,7 @@ def replace_by_mapping(lines: List[str],  line_indexes: List[int], mapping: dict
                     output_mul_mapping.append(f'{word} -> {list(replacements)}')
                 replacement = next(iter(replacements)) if len(replacements) == 1 else "\n".join(replacements)
                 if replacement.lower() != word.lower():
-                    raw_line = re.sub(rf'\b{re.escape(word)}\b', replacement, raw_line)
+                    raw_line = re.sub(rf'\b{re.escape(word)}\b', replacement, raw_line, flags=re.IGNORECASE)
             
             if insert_flag and word.upper() == 'VALUES':
                 insert_flag = False
