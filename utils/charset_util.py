@@ -58,7 +58,8 @@ ENCODE_GROUPS = {
 }
 
 def is_same_encodings(enc1: str, enc2: str) -> int:
-    return ENCODE_GROUPS[enc1] == ENCODE_GROUPS[enc2]
+    return enc1 in ENCODE_GROUPS and enc2 in ENCODE_GROUPS and ENCODE_GROUPS[enc1] == ENCODE_GROUPS[enc2]
+
 def normalize_encoding(enc: str) -> str:
     """Normalize encoding names to match common_encodings list."""
     if not enc:
