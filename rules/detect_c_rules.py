@@ -1,6 +1,7 @@
 import re
 from typing import List, Tuple
 from logic import text_processing
+from rules import detect_c_rule28
 from rules import common_detect_rules
 from rules import detect_c_rule22
 
@@ -70,12 +71,19 @@ def detect_and_apply_rules(query: str, source_type: str, active_rule_set: set) -
     if 22 in active_rule_set:
         query = detect_c_rule22.transform_line_for_rule22(query)
 
+
     rules = common_detect_rules.load_all_rules(source_type)
     matched_rules = []
+    if 28 in active_rule_set:
+        rule28 = [rules[i] for i in range(len(rules)) if rules[i]["rule_no"] == 28]
+        query = detect_c_rule28.transform_line_for_rule28(query, rule28)
     for rule in rules:
         rule_no = rule["rule_no"]
         if active_rule_set and rule_no not in active_rule_set:
             continue
+        if "pattern_detect" not in rule or "replace_value" not in rule:
+            continue
+
         pattern = rule["pattern_detect"]
         replace = rule["replace_value"]
         

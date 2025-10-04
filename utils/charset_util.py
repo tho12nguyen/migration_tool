@@ -77,7 +77,7 @@ def detect_encode_use_lib(content_bytes: bytes) -> str:
         return DEFAULT_ENCODING
 
     # Sort by best match (higher coherence = better)
-    results = sorted(results, key=lambda r: r.fingerprint or 0, reverse=True)
+    results = sorted(results, key=lambda r: r.chaos)
 
     # Try to return the first match from common_encodings
     for r in results:
