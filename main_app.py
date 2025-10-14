@@ -7,6 +7,7 @@ import pandas as pd
 import re
 import os
 import shutil
+from utils import winmerge_util
 from rules import detect_c_rules
 from utils import common_util
 import xlwings as xw
@@ -679,7 +680,7 @@ with tab7:
                     try:
                         file_type = full_file_name.split('.')[-1]
                         file_name = full_file_name.rsplit('.', 1)[0]
-
+                        svn_path = source_configs.SVN_ROOT_PATH + "/" +''.join((src_label, full_file_name))[1:]  # remove leading character
                         src_path = source_configs.ROOT_APP_PATH + "/" +''.join((src_label, full_file_name))[1:]  # remove leading character
                         des_path = f'{des_folder_name}/{full_file_name}'
                         des_path_after = f'{des_folder_name}/{file_name}_after.{file_type}'
@@ -699,8 +700,9 @@ with tab7:
                         if os.path.exists(des_path_after):
                             os.remove(des_path_after)
                             st.warning(f"File already exists, removed old file: {des_path_after}")
-    
+                        
                         shutil.copy(src_path, des_path_after)
+
                         os.chmod(des_path_after, 0o666)
                         # shutil.copy(TEMPLATE_EXCEL_PATH, des_excel_path)
                         shutil.copy(TEMPLATE_HTML_PATH, des_html_path)
@@ -731,6 +733,17 @@ with tab7:
                             st.error(f"Invalid end line {end_line} for file with {len(lines)} lines.")
                             continue
                         
+                        if selected_sheet_name == "db2SQL":
+                            with open(svn_path, 'r', encoding=encoding, newline="") as f:
+                                svn_lines = f.readlines()
+                            if not svn_lines:
+                                st.error(f"No lines read from {svn_path}")
+                                continue
+
+                            # copy from start_line to end_line
+                            for i in range(start_line_index, end_line_index+1):
+                                lines[i] = svn_lines[i]
+
                         query_line =  DEFAULT_SEPARATOR.join(lines[start_line_index:end_line_index+1])
                         if not query_line:
                             st.error(f"No lines to process from line {start_line} onwards. value: {query_line}")
@@ -767,7 +780,7 @@ with tab7:
                             with open(des_path_after, 'w', encoding=encoding, newline="") as f:
                                 f.writelines(lines)
                             st.warning(des_html_path)
-                            # winmerge_util.run_winmerge(des_path, des_path_after, des_html_path)
+                            winmerge_util.run_winmerge(des_path, des_path_after, des_html_path)
                         else:
                             open(nothing_to_fix_file_path, "w").close()
                             st.error("Nothing to fix")

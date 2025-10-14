@@ -33,6 +33,8 @@ EVIDENCE_EXCEL_SHEETS = ["schema", "table", 'column', 'key', 'type1.1' , 'type1.
 NOTHING_TO_FIX_FILE_NAME = "修正対象ソースコードがないため、対応不要.txt"
 
 # COMMON CONFIG PATH
+WINMERGE_PATH =  os.getenv("WINMERGE_PATH", "")
+
 OUTPUT_EVIDENCE_EXCEL_NAME = "evidence.xlsx"
 RESOURCE_ROOT_PATH = os.getenv("RESOURCE_ROOT_PATH")
 FULL_EVIDENCE_INPUT_PATH = RESOURCE_ROOT_PATH + "/resources/evidence.xlsx" 
