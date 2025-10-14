@@ -68,7 +68,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
             return (
                 f'PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'\\\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
+                f'\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
             )
 
@@ -80,7 +80,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
             return (
                 f'{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'\\\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
+                f'\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
                 f')\n'
             )
@@ -93,7 +93,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
             return (
                 f'PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'\\\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
             )
 
@@ -103,7 +103,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
             return (
                 f'{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" <<EOF\n'
-                f'\\\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
                 f')\n'
             )
@@ -117,7 +117,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
                 f'PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
                 f'TRUNCATE TABLE {table};\n'
-                f'\\\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
             )
 
@@ -128,7 +128,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
                 f'{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" <<EOF\n'
                 f'TRUNCATE TABLE {table};\n'
-                f'\\\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
                 f')\n'
             )
