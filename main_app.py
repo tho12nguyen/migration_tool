@@ -781,7 +781,7 @@ with tab7:
                                 f.writelines(lines)
                             st.warning(des_html_path)
                             winmerge_util.run_winmerge(des_path, des_path_after, des_html_path)
-                        else:
+                        elif selected_sheet_name != "db2SQL":
                             open(nothing_to_fix_file_path, "w").close()
                             st.error("Nothing to fix")
                             os.remove(des_path)
