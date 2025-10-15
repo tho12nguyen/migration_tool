@@ -61,15 +61,15 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
 
         # ==== EXPORT ====
         if template == "psql_block":
-            outputfile, of_type, select_sql, logfile = m.groups()
+            space_block,outputfile, of_type, select_sql, logfile = m.groups()
             pg_opts = ", ".join(convert_options(command))
             select_sql = normalize_select(select_sql)
             redir = format_log_redirection(logfile)
             return (
-                f'PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
+                f'{space_block}PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
-                f'EOF\n'
+                f'{space_block}\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
+                f'{space_block}EOF\n'
             )
         
         elif template == "psql_block_short":
@@ -86,64 +86,64 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
          
 
         elif template == "psql_var_block":
-            varname, outputfile, of_type, select_sql, logfile = m.groups()
+            space_block,varname, outputfile, of_type, select_sql, logfile = m.groups()
             pg_opts = ", ".join(convert_options(command))
             select_sql = normalize_select(select_sql)
             redir = format_log_redirection(logfile)
             return (
-                f'{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
+                f'{space_block}{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
-                f'EOF\n'
-                f')\n'
+                f'{space_block}\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
+                f'{space_block}EOF\n'
+                f'{space_block})\n'
             )
 
         # ==== IMPORT INSERT INTO ====
         elif template == "psql_block_import":
-            infile, table, logfile = m.groups()
+            space_block, infile, table, logfile = m.groups()
             pg_opts = "FORMAT csv, DELIMITER ','"
             redir = format_log_redirection(logfile)
             return (
-                f'PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
+                f'{space_block}PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
-                f'EOF\n'
+                f'{space_block}\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'{space_block}EOF\n'
             )
 
         elif template == "psql_var_block_import":
-            varname, infile, table = m.groups()
+            space_block, varname, infile, table = m.groups()
             pg_opts = "FORMAT csv, DELIMITER ','"
             return (
-                f'{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
+                f'{space_block}{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" <<EOF\n'
-                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
-                f'EOF\n'
-                f')\n'
+                f'{space_block}\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'{space_block}EOF\n'
+                f'{space_block})\n'
             )
 
         # ==== IMPORT REPLACE INTO ====
         elif template == "psql_block_import_replace":
-            infile, table, logfile = m.groups()
+            space_block, infile, table, logfile = m.groups()
             pg_opts = "FORMAT csv, DELIMITER ',', ENCODING 'EUC_JP'"
             redir = format_log_redirection(logfile)
             return (
-                f'PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
+                f'{space_block}PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" {redir} <<EOF\n'
-                f'TRUNCATE TABLE {table};\n'
-                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
-                f'EOF\n'
+                f'{space_block}TRUNCATE TABLE {table};\n'
+                f'{space_block}\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'{space_block}EOF\n'
             )
 
         elif template == "psql_var_block_import_replace":
-            varname, infile, table = m.groups()
+            space_block, varname, infile, table = m.groups()
             pg_opts = "FORMAT csv, DELIMITER ',', ENCODING 'EUC_JP'"
             return (
-                f'{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
+                f'{space_block}{varname}=$(PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
                 f'-d "${{ECOM_DB_NAME}}" <<EOF\n'
-                f'TRUNCATE TABLE {table};\n'
-                f'\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
-                f'EOF\n'
-                f')\n'
+                f'{space_block}TRUNCATE TABLE {table};\n'
+                f'{space_block}\\copy {table} FROM \'{infile}\' WITH ({pg_opts});\n'
+                f'{space_block}EOF\n'
+                f'{space_block})\n'
             )
 
     return command
