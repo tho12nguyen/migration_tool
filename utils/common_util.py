@@ -31,10 +31,18 @@ def get_index_from_list(options: List[str], selected_option: str) -> int:
 
 def parse_int(value: str, default: int = -1) -> int:
     """
-    Safely parse a string into an integer.
-    Returns `default` if parsing fails.
+    Parse a string representing an integer or a simple subtraction like "189-1".
+    Returns the computed integer, or `default` if parsing fails.
     """
     try:
+        # Remove spaces
+        value = value.replace(" ", "")
+        # Check if it's a subtraction
+        if '-' in value:
+            parts = value.split('-')
+            if len(parts) == 2:
+                return int(parts[0]) - int(parts[1])
+        # Otherwise, parse normally
         return int(value)
     except (ValueError, TypeError):
         return default
