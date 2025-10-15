@@ -193,7 +193,7 @@ with tab2:
     )
 
     txt_items2 = st.text_area(
-        "Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE, END_LINE):", 
+        "Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE, END_LINE,TABLE_NAMES[option],COLUMN_NAMES[option]):", 
         height=300, 
         value=txt_items, 
         key="input_list_tab2"
@@ -793,7 +793,7 @@ with tab7:
                     
 with tab8:
     SOURCE_TYPE8 = st.radio("Source Type", SOURCE_TYPE_OPTIONS ,  index= 1,horizontal=True, key="source_type_tab8")
-    txt_items = st.text_area("Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE):", height=300, key="input_list_tab8")
+    txt_items = st.text_area("Input list (tab-separated: NO, FILE_PATH, FILE_NAME, START_LINE, END_LINE,TABLE_NAMES[option],COLUMN_NAMES[option]):", height=300, key="input_list_tab8")
 
     btn_col1, = st.columns(1)
     btn_fix_unix_format = btn_col1.button("FIX", key="btn_init_tab8")

@@ -46,7 +46,7 @@ def format_log_redirection(existing_redir: str) -> str:
     logfile, rest = m.groups()
     logfile = logfile.strip("\"'")
 
-    return f'> "{logfile}"{rest}'
+    return f'>> "{logfile}"{rest}'
 
 
 def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
@@ -71,6 +71,19 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
                 f'\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
                 f'EOF\n'
             )
+        
+        elif template == "psql_block_short":
+            pattern = re.compile(r["pattern_detect"], flags=re.IGNORECASE)
+
+            def repl(m):
+                outputfile, of_type, select_sql = m.groups()
+                pg_opts = ", ".join(convert_options(command))
+                select_sql = normalize_select(select_sql)
+                return f'"\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});"'
+
+            command = pattern.sub(repl, command)
+            return command
+         
 
         elif template == "psql_var_block":
             varname, outputfile, of_type, select_sql, logfile = m.groups()
