@@ -6,10 +6,10 @@ DEFAULT_ENCODING = 'utf-8'
 
 common_encodings = [
         'cp932',            # Windows Japanese (Shift_JIS variant, most common on Windows)
-        'shift-jis',        # Standard Shift_JIS (ISO form)
-        'euc-jp',           # EUC-JP (Unix/Linux Japanese files)
         'shift_jisx0213',   # Extended Shift_JIS (rare/modern Kanji)
+        'shift-jis',        # Standard Shift_JIS (ISO form)
         "euc_jis_2004",     # Extended EUC-JP (rare/modern Kanji)
+        'euc-jp',           # EUC-JP (Unix/Linux Japanese files)
         'iso2022_jp',       # JIS encoding (used in emails, older systems)
         'iso2022_jp_1',     # Variant of ISO-2022-JP
         'iso2022_jp_2',     # Supports extended characters
