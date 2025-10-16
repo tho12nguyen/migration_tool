@@ -781,12 +781,13 @@ with tab7:
                                 f.writelines(lines)
                             st.warning(des_html_path)
                             winmerge_util.run_winmerge(des_path, des_path_after, des_html_path)
-                        elif selected_sheet_name != "db2SQL":
-                            open(nothing_to_fix_file_path, "w").close()
+                        else:
                             st.error("Nothing to fix")
-                            os.remove(des_path)
-                            os.remove(des_path_after)
-                            os.remove(des_html_path)
+                            if selected_sheet_name != "db2SQL":
+                                open(nothing_to_fix_file_path, "w").close()
+                                os.remove(des_path)
+                                os.remove(des_path_after)
+                                os.remove(des_html_path)
                         st.success(f"Finished No.{item_no}: Lines {start_line}, Encoding: {encoding}")
                     except Exception as e:
                         st.error(f"Failed to create item No.{item_no}: {e}")

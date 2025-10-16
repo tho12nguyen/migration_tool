@@ -79,7 +79,7 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
                 outputfile, of_type, select_sql = m.groups()
                 pg_opts = ", ".join(convert_options(command))
                 select_sql = normalize_select(select_sql)
-                return f'"\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});"'
+                return f'"\\\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts})"'
 
             command = pattern.sub(repl, command)
             return command
