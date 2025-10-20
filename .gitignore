@@ -120,4 +120,4 @@ dmypy.json
 
 
 resources
-test.ipynb
+*.ipynb
