@@ -80,9 +80,9 @@ def transform_line_for_rule28(command: str, rules: List[dict]) -> str:
             
             return (
                 f'{space_block}PGPASSWORD="${{ECOM_DB_PASSWD}}" psql -U "${{ECOM_DB_USERID}}" '
-                f'-d "${{ECOM_DB_NAME}}"  -A -F $\'\\t\' -t -q <<EOF\n'
+                f'-d "${{ECOM_DB_NAME}}"  -q -A -F $\'\\t\' -t <<EOF\n'
                 f'{space_block}\\copy ({select_sql}) TO \'{outputfile}\' WITH ({pg_opts});\n'
-                f'{space_block}EOF > /dev/null\n'
+                f'{space_block}EOF\n'
             )
         
         elif template == "psql_block_short":
