@@ -4,28 +4,23 @@ from typing import List, Tuple
 def extract_japanese_alphanum(text: str) -> List[str]:
     return re.findall(r'[\u3040-\u30ff\u4e00-\u9fff\w:]+', text, re.UNICODE)
 
+
 def remove_comments(text: str) -> str:
+    # Remove all block comments: /*...*/, /***...***/, <!--...-->
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)       # Handles /* ... */
+    text = re.sub(r'/\*\*\*.*?\*\*\*/', '', text, flags=re.DOTALL) # Handles /*** ... ***/
+    text = re.sub(r'<!--.*?-->', '', text, flags=re.DOTALL)      # Handles <!-- ... -->
+
+    # Remove single-line comments starting with //
     text = re.sub(r'//.*', '', text)
-    output_text = ''
-    num_block_code_flag = 0
+
+    # Normalize whitespace and preserve line breaks
+    output_lines = []
     for line in text.splitlines():
-        original_line = line.strip()
-        # Skip block comment lines
-        if (original_line.startswith("/*") or original_line.startswith("<!--")):
-            num_block_code_flag += 1
+        if line.strip():  # Skip empty lines
+            output_lines.append(line)
+    return '\n'.join(output_lines)
 
-        if num_block_code_flag > 0:
-            if (original_line.endswith("*/") or original_line.endswith("-->")):
-                num_block_code_flag -= 1
-            continue
-
-        if original_line.startswith("//"):
-            continue
-        if original_line.endswith('\n'):
-            output_text += line
-        else:
-            output_text += line + '\n'
-    return output_text
 
 def remove_system_out_print(text: str) -> str:
     # Match System.out.print / println / printf with multi-line support
