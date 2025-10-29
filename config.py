@@ -106,7 +106,7 @@ def get_configs_by_source_type(source_type: str) -> SouceConfig:
                 C_ROOT_APP_PATH,
                 C_ROOT_OUTPUT_PATH,
                 C_SVN_ROOT_PATH,
-                 ['_after.sqc', '_after.h', '_after.sh', '_after.c', '_after.txt', '_after.conf', '_after.ini'],
+                 ['_after.sqc', '_after.h', '_after.sh', '_after.c', '_after.txt', '_after.conf', '_after.ini', '_after.cpp'],
                  {
                     "SELECT": [1,2,5,6,7,8,9,10,11,12,13,14,15,17,29,30],
                     "UPDATE": [1,2, 4,5,6,7,8,9,10,12,13,15,29,30],
